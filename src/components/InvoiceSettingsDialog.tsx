@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -54,6 +55,7 @@ interface InvoiceSettingsDialogProps {
 
 export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogProps) {
   const { user } = useApp();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -97,13 +99,13 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
   const handleSave = () => {
     // Validation
     if (!settings.companyName || !settings.taxCode) {
-      toast.error('Vui lòng nhập tên công ty và mã số thuế');
+      toast.error(t('invoiceSettings.errorCompanyName'));
       return;
     }
 
     if (settings.provider && settings.provider !== 'manual') {
       if (!settings.apiKey || !settings.apiSecret) {
-        toast.error('Vui lòng nhập API Key và API Secret');
+        toast.error(t('invoiceSettings.errorApiCredentials'));
         return;
       }
     }
@@ -112,11 +114,11 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
     try {
       // Save to localStorage
       localStorage.setItem('invoiceSettings', JSON.stringify(settings));
-      toast.success('Đã lưu cấu hình hóa đơn thành công!');
+      toast.success(t('invoiceSettings.saveSuccess'));
       onClose();
     } catch (error) {
       console.error('Failed to save invoice settings:', error);
-      toast.error('Lỗi khi lưu cấu hình');
+      toast.error(t('invoiceSettings.saveError'));
     } finally {
       setLoading(false);
     }
@@ -124,12 +126,12 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
 
   const handleTestConnection = async () => {
     if (!settings.provider || settings.provider === 'manual') {
-      toast.error('Vui lòng chọn nhà cung cấp hóa đơn');
+      toast.error(t('invoiceSettings.testError'));
       return;
     }
 
     if (!settings.apiKey || !settings.apiSecret) {
-      toast.error('Vui lòng nhập API Key và API Secret');
+      toast.error(t('invoiceSettings.testErrorCredentials'));
       return;
     }
 
@@ -138,11 +140,12 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
     
     // Simulate API test - since we removed backend, just simulate success
     setTimeout(() => {
+      const providerName = providers.find(p => p.id === settings.provider)?.name || '';
       setTestResult({ 
         success: true, 
-        message: `Kết nối thành công với ${providers.find(p => p.id === settings.provider)?.name}! (Chế độ frontend-only)` 
+        message: t('invoiceSettings.testSuccess').replace('{provider}', providerName)
       });
-      toast.success('Test kết nối thành công!');
+      toast.success(t('invoiceSettings.testSuccess').replace('{provider}', providerName));
       setTesting(false);
     }, 1500);
   };
@@ -161,10 +164,10 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <FileText className="w-7 h-7 text-blue-600" />
-            Cấu hình Thuế & Hóa đơn
+            {t('invoiceSettings.title')}
           </DialogTitle>
           <DialogDescription>
-            Cấu hình các thông tin cần thiết để tạo hóa đơn điện tử cho khách hàng.
+            {t('invoiceSettings.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -178,74 +181,74 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
             <Card className="p-6 bg-blue-50 border-blue-200">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-blue-900">1. Thông tin Doanh nghiệp</h3>
+                <h3 className="font-bold text-blue-900">1. {t('invoiceSettings.companyInfo')}</h3>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <Label htmlFor="companyName">Tên công ty *</Label>
+                  <Label htmlFor="companyName">{t('invoiceSettings.companyName')}</Label>
                   <Input
                     id="companyName"
                     value={settings.companyName}
                     onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
-                    placeholder="VD: Khách sạn ABC"
+                    placeholder={t('invoiceSettings.companyNamePlaceholder')}
                     className="mt-1"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="taxCode">Mã số thuế *</Label>
+                  <Label htmlFor="taxCode">{t('invoiceSettings.taxCode')}</Label>
                   <Input
                     id="taxCode"
                     value={settings.taxCode}
                     onChange={(e) => setSettings({ ...settings, taxCode: e.target.value })}
-                    placeholder="VD: 0123456789"
+                    placeholder={t('invoiceSettings.taxCodePlaceholder')}
                     className="mt-1"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">Số điện thoại</Label>
+                  <Label htmlFor="phone">{t('invoiceSettings.phone')}</Label>
                   <Input
                     id="phone"
                     value={settings.phone}
                     onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                    placeholder="VD: 0901234567"
+                    placeholder={t('invoiceSettings.phonePlaceholder')}
                     className="mt-1"
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <Label htmlFor="address">Địa chỉ</Label>
+                  <Label htmlFor="address">{t('invoiceSettings.address')}</Label>
                   <Textarea
                     id="address"
                     value={settings.address}
                     onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                    placeholder="VD: 123 Đường ABC, Quận 1, TP.HCM"
+                    placeholder={t('invoiceSettings.addressPlaceholder')}
                     className="mt-1"
                     rows={2}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email liên hệ</Label>
+                  <Label htmlFor="email">{t('invoiceSettings.email')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={settings.email}
                     onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                    placeholder="VD: hotel@example.com"
+                    placeholder={t('invoiceSettings.emailPlaceholder')}
                     className="mt-1"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="logo">Logo (URL)</Label>
+                  <Label htmlFor="logo">{t('invoiceSettings.logo')}</Label>
                   <Input
                     id="logo"
                     value={settings.logoUrl || ''}
                     onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })}
-                    placeholder="https://example.com/logo.png"
+                    placeholder={t('invoiceSettings.logoPlaceholder')}
                     className="mt-1"
                   />
                 </div>
@@ -256,7 +259,7 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
             <Card className="p-6 bg-green-50 border-green-200">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-5 h-5 text-green-600" />
-                <h3 className="font-bold text-green-900">2. Chọn Nhà cung cấp Hóa đơn điện tử</h3>
+                <h3 className="font-bold text-green-900">2. {t('invoiceSettings.provider')}</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -291,9 +294,7 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                   <p className="text-sm text-yellow-800 flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <span>
-                      Bạn cần <strong>đăng ký tài khoản</strong> với {providers.find(p => p.id === settings.provider)?.name} 
-                      {' '}để nhận <strong>API Key</strong> và <strong>API Secret</strong>. 
-                      Liên hệ hotline của họ để được hỗ trợ.
+                      {t('invoiceSettings.providerNote').replace('{provider}', providers.find(p => p.id === settings.provider)?.name || '')}
                     </span>
                   </p>
                 </div>
@@ -305,36 +306,36 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
               <Card className="p-6 bg-purple-50 border-purple-200">
                 <div className="flex items-center gap-2 mb-4">
                   <Key className="w-5 h-5 text-purple-600" />
-                  <h3 className="font-bold text-purple-900">3. Cấu hình API</h3>
+                  <h3 className="font-bold text-purple-900">3. {t('invoiceSettings.apiConfig')}</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="apiKey">API Key *</Label>
+                    <Label htmlFor="apiKey">{t('invoiceSettings.apiKey')}</Label>
                     <Input
                       id="apiKey"
                       type="password"
                       value={settings.apiKey || ''}
                       onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
-                      placeholder="Nhập API Key từ nhà cung cấp"
+                      placeholder={t('invoiceSettings.apiKeyPlaceholder')}
                       className="mt-1 font-mono"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="apiSecret">API Secret *</Label>
+                    <Label htmlFor="apiSecret">{t('invoiceSettings.apiSecret')}</Label>
                     <Input
                       id="apiSecret"
                       type="password"
                       value={settings.apiSecret || ''}
                       onChange={(e) => setSettings({ ...settings, apiSecret: e.target.value })}
-                      placeholder="Nhập API Secret từ nhà cung cấp"
+                      placeholder={t('invoiceSettings.apiSecretPlaceholder')}
                       className="mt-1 font-mono"
                     />
                   </div>
 
                   <div>
-                    <Label>Môi trường</Label>
+                    <Label>{t('invoiceSettings.environment')}</Label>
                     <div className="flex gap-3 mt-2">
                       <Button
                         type="button"
@@ -342,7 +343,7 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                         onClick={() => setSettings({ ...settings, environment: 'sandbox' })}
                         className="flex-1"
                       >
-                        🧪 Sandbox (Test)
+                        {t('invoiceSettings.sandbox')}
                       </Button>
                       <Button
                         type="button"
@@ -350,7 +351,7 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                         onClick={() => setSettings({ ...settings, environment: 'production' })}
                         className="flex-1"
                       >
-                        🚀 Production (Thật)
+                        {t('invoiceSettings.production')}
                       </Button>
                     </div>
                   </div>
@@ -366,12 +367,12 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                     {testing ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Đang kiểm tra...
+                        {t('invoiceSettings.testing')}
                       </>
                     ) : (
                       <>
                         <TestTube className="w-4 h-4 mr-2" />
-                        Test Kết nối API
+                        {t('invoiceSettings.testConnection')}
                       </>
                     )}
                   </Button>
@@ -409,12 +410,12 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
             <Card className="p-6 bg-gray-50 border-gray-200">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-5 h-5 text-gray-600" />
-                <h3 className="font-bold text-gray-900">4. Cấu hình Thuế GTGT</h3>
+                <h3 className="font-bold text-gray-900">4. {t('invoiceSettings.taxConfig')}</h3>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="vatRate">Thuế suất GTGT (%)</Label>
+                  <Label htmlFor="vatRate">{t('invoiceSettings.vatRate')}</Label>
                   <div className="grid grid-cols-4 gap-2 mt-2">
                     <Button
                       type="button"
@@ -422,8 +423,8 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                       onClick={() => setSettings({ ...settings, vatRate: 0 })}
                       className="h-auto py-3 flex flex-col items-center gap-1"
                     >
-                      <span className="text-lg font-bold">0%</span>
-                      <span className="text-xs">Không thuế</span>
+                      <span className="text-lg font-bold">{t('invoiceSettings.vatRate0')}</span>
+                      <span className="text-xs">{t('invoiceSettings.vatRate0Desc')}</span>
                     </Button>
                     <Button
                       type="button"
@@ -431,8 +432,8 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                       onClick={() => setSettings({ ...settings, vatRate: 5 })}
                       className="h-auto py-3 flex flex-col items-center gap-1"
                     >
-                      <span className="text-lg font-bold">5%</span>
-                      <span className="text-xs">Đặc biệt</span>
+                      <span className="text-lg font-bold">{t('invoiceSettings.vatRate5')}</span>
+                      <span className="text-xs">{t('invoiceSettings.vatRate5Desc')}</span>
                     </Button>
                     <Button
                       type="button"
@@ -440,8 +441,8 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                       onClick={() => setSettings({ ...settings, vatRate: 8 })}
                       className="h-auto py-3 flex flex-col items-center gap-1"
                     >
-                      <span className="text-lg font-bold">8%</span>
-                      <span className="text-xs">Khách sạn</span>
+                      <span className="text-lg font-bold">{t('invoiceSettings.vatRate8')}</span>
+                      <span className="text-xs">{t('invoiceSettings.vatRate8Desc')}</span>
                     </Button>
                     <Button
                       type="button"
@@ -449,22 +450,22 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                       onClick={() => setSettings({ ...settings, vatRate: 10 })}
                       className="h-auto py-3 flex flex-col items-center gap-1"
                     >
-                      <span className="text-lg font-bold">10%</span>
-                      <span className="text-xs">Dịch vụ</span>
+                      <span className="text-lg font-bold">{t('invoiceSettings.vatRate10')}</span>
+                      <span className="text-xs">{t('invoiceSettings.vatRate10Desc')}</span>
                     </Button>
                   </div>
                   <p className="text-xs text-gray-600 mt-2">
-                    💡 Khách sạn/Nhà nghỉ thường áp dụng thuế suất 8% theo quy định
+                    {t('invoiceSettings.vatRateHint')}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
                   <div>
-                    <Label>Giá đã bao gồm VAT</Label>
+                    <Label>{t('invoiceSettings.vatIncluded')}</Label>
                     <p className="text-sm text-gray-600 mt-1">
                       {settings.vatIncluded 
-                        ? 'Giá phòng đã bao gồm VAT (sẽ tách VAT khi xuất hóa đơn)'
-                        : 'Giá phòng chưa bao gồm VAT (sẽ cộng thêm VAT)'
+                        ? t('invoiceSettings.vatIncludedYes')
+                        : t('invoiceSettings.vatIncludedNo')
                       }
                     </p>
                   </div>
@@ -473,7 +474,7 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                     variant={settings.vatIncluded ? 'default' : 'outline'}
                     onClick={() => setSettings({ ...settings, vatIncluded: !settings.vatIncluded })}
                   >
-                    {settings.vatIncluded ? 'CÓ' : 'KHÔNG'}
+                    {settings.vatIncluded ? t('invoiceSettings.vatIncludedToggle') : t('invoiceSettings.vatIncludedToggleNo')}
                   </Button>
                 </div>
               </div>
@@ -483,15 +484,15 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
             <Card className="p-6 bg-orange-50 border-orange-200">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-5 h-5 text-orange-600" />
-                <h3 className="font-bold text-orange-900">5. Tùy chọn bổ sung</h3>
+                <h3 className="font-bold text-orange-900">5. {t('invoiceSettings.additionalOptions')}</h3>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Tự động xuất hóa đơn khi thanh toán</Label>
+                    <Label>{t('invoiceSettings.autoIssue')}</Label>
                     <p className="text-sm text-gray-600 mt-1">
-                      Mỗi lần khách trả phòng sẽ tự động tạo hóa đơn điện tử
+                      {t('invoiceSettings.autoIssueDesc')}
                     </p>
                   </div>
                   <Button
@@ -499,33 +500,33 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
                     variant={settings.autoIssue ? 'default' : 'outline'}
                     onClick={() => setSettings({ ...settings, autoIssue: !settings.autoIssue })}
                   >
-                    {settings.autoIssue ? 'BẬT' : 'TẮT'}
+                    {settings.autoIssue ? t('invoiceSettings.autoIssueToggle') : t('invoiceSettings.autoIssueToggleOff')}
                   </Button>
                 </div>
 
                 <div>
-                  <Label>Mẫu hóa đơn</Label>
+                  <Label>{t('invoiceSettings.template')}</Label>
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     <Button
                       type="button"
                       variant={settings.template === 'simple' ? 'default' : 'outline'}
                       onClick={() => setSettings({ ...settings, template: 'simple' })}
                     >
-                      Đơn giản
+                      {t('invoiceSettings.templateSimple')}
                     </Button>
                     <Button
                       type="button"
                       variant={settings.template === 'standard' ? 'default' : 'outline'}
                       onClick={() => setSettings({ ...settings, template: 'standard' })}
                     >
-                      Tiêu chuẩn
+                      {t('invoiceSettings.templateStandard')}
                     </Button>
                     <Button
                       type="button"
                       variant={settings.template === 'detailed' ? 'default' : 'outline'}
                       onClick={() => setSettings({ ...settings, template: 'detailed' })}
                     >
-                      Chi tiết
+                      {t('invoiceSettings.templateDetailed')}
                     </Button>
                   </div>
                 </div>
@@ -535,18 +536,18 @@ export function InvoiceSettingsDialog({ open, onClose }: InvoiceSettingsDialogPr
             {/* Action Buttons */}
             <div className="flex gap-3 justify-end pt-4 border-t">
               <Button variant="outline" onClick={onClose} disabled={loading}>
-                Hủy
+                {t('invoiceSettings.cancel')}
               </Button>
               <Button onClick={handleSave} disabled={loading} className="min-w-32">
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Đang lưu...
+                    {t('invoiceSettings.saving')}
                   </>
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Lưu cấu hình
+                    {t('invoiceSettings.save')}
                   </>
                 )}
               </Button>

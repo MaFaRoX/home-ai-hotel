@@ -3,6 +3,7 @@
 import { FileSpreadsheet, FileText } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 import { removeVietnameseAccents, formatCurrency, formatDate } from '../utils/textUtils';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -44,6 +45,7 @@ interface ExportReportButtonsProps {
 }
 
 export function ExportReportButtons({ data, reportType, period, summary, viewMode = 'month' }: ExportReportButtonsProps) {
+  const { t } = useLanguage();
   
   // Compact currency format for PDF (removes trailing zeros)
   const formatCurrencyCompact = (amount: number): string => {
@@ -61,7 +63,7 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
   const exportToExcel = () => {
     try {
       if (data.length === 0) {
-        toast.error('Không có dữ liệu để xuất');
+        toast.error(t('export.noData'));
         return;
       }
 
@@ -186,19 +188,19 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
       // Download file
       XLSX.writeFile(wb, filename);
 
-      toast.success('✅ Xuất Excel thành công!', {
+      toast.success(t('export.excelSuccess'), {
         description: `File: ${filename}`
       });
     } catch (error) {
       console.error('Excel export error:', error);
-      toast.error('Lỗi khi xuất Excel');
+      toast.error(t('export.excelError'));
     }
   };
 
   const exportToPDF = () => {
     try {
       if (data.length === 0) {
-        toast.error('Không có dữ liệu để xuất');
+        toast.error(t('export.noData'));
         return;
       }
 
@@ -404,12 +406,12 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
       // Save PDF
       doc.save(filename);
 
-      toast.success('✅ Xuất PDF thành công!', {
+      toast.success(t('export.pdfSuccess'), {
         description: `File: ${filename}`
       });
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error('Lỗi khi xuất PDF');
+      toast.error(t('export.pdfError'));
     }
   };
 
@@ -421,7 +423,7 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
         className="flex-1 bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
       >
         <FileSpreadsheet className="w-4 h-4 mr-2" />
-        Xuất Excel
+        {t('export.excel')}
       </Button>
       <Button
         onClick={exportToPDF}
@@ -429,7 +431,7 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
         className="flex-1 bg-red-50 hover:bg-red-100 border-red-300 text-red-700"
       >
         <FileText className="w-4 h-4 mr-2" />
-        Xuất PDF
+        {t('export.pdf')}
       </Button>
     </div>
   );

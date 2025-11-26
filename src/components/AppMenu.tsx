@@ -5,6 +5,7 @@ import { InvoiceHistoryDialog } from './InvoiceHistoryDialog';
 import { Home, LogOut, UserPlus, Users, CreditCard, Building2, Settings, Trash2, FileText, History } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './ui/sheet';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
@@ -25,6 +26,7 @@ interface AppMenuProps {
 export function AppMenu({ open, onClose }: AppMenuProps) {
   const { user, hotel, logout, addStaff, updateHotelInfo } = useApp();
   const { features, isBoardingHouse, isGuestHouse } = useBusinessModel();
+  const { t } = useLanguage();
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [showHotelConfig, setShowHotelConfig] = useState(false);
   const [showBankAccount, setShowBankAccount] = useState(false);
@@ -42,7 +44,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const handleAddStaff = (e: React.FormEvent) => {
     e.preventDefault();
     addStaff(staffEmail, staffName, staffRole);
-    toast.success(`Đã thêm nhân viên ${staffName}!`);
+    toast.success(`${t('menu.staffAdded')} ${staffName}!`);
     setShowAddStaff(false);
     setStaffName('');
     setStaffEmail('');
@@ -52,7 +54,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const handleResetAllData = () => {
     // Clear all localStorage
     localStorage.clear();
-    toast.success('Đã xóa toàn bộ dữ liệu!');
+    toast.success(t('menu.dataReset'));
     setShowResetConfirm(false);
     // Reload page to reset state
     window.location.reload();
@@ -63,14 +65,14 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <SheetContent side="left" className="w-80 flex flex-col">
         <SheetHeader>
           <SheetTitle>{hotel?.name}</SheetTitle>
-          <SheetDescription>Menu chính</SheetDescription>
+          <SheetDescription>{t('menu.main')}</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto mt-6 space-y-2 pb-4">
           {/* Always visible */}
           <Button variant="ghost" className="w-full justify-start" onClick={onClose}>
             <Home className="w-5 h-5 mr-3" />
-            Sơ đồ phòng
+            {t('menu.roomMap')}
           </Button>
 
           {/* Admin only */}
@@ -87,7 +89,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 }}
               >
                 <Building2 className="w-5 h-5 mr-3" />
-                Cấu hình {isBoardingHouse ? 'Nhà trọ' : isGuestHouse ? 'Nhà nghỉ' : 'Khách sạn'}
+                {isBoardingHouse ? t('menu.configBoardingHouse') : isGuestHouse ? t('menu.configGuestHouse') : t('menu.configHotel')}
               </Button>
               
               <Button 
@@ -99,7 +101,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 }}
               >
                 <CreditCard className="w-5 h-5 mr-3" />
-                Tài khoản Ngân hàng
+                {t('menu.bankAccount')}
               </Button>
 
 
@@ -112,7 +114,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 }}
               >
                 <FileText className="w-5 h-5 mr-3" />
-                Thuế & Hóa đơn điện tử
+                {t('menu.taxInvoice')}
               </Button>
 
               <Button 
@@ -124,7 +126,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 }}
               >
                 <History className="w-5 h-5 mr-3" />
-                Lịch sử hóa đơn
+                {t('menu.invoiceHistory')}
               </Button>
 
               {/* Staff Management - Only for hotels with staff */}
@@ -138,7 +140,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                   }}
                 >
                   <UserPlus className="w-5 h-5 mr-3" />
-                  Thêm Nhân viên
+                  {t('menu.addStaff')}
                 </Button>
               )}
 
@@ -146,14 +148,14 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
                     <Users className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-900">Danh sách nhân viên</span>
+                    <span className="text-sm text-gray-900">{t('menu.staffList')}</span>
                   </div>
                   <div className="space-y-2">
                     {hotel.staff.map((s) => (
                       <div key={s.id} className="text-xs">
                         <p className="text-gray-900">{s.name}</p>
                         <p className="text-gray-500">
-                          {s.email} • {s.role === 'receptionist' ? 'Lễ tân' : 'Buồng phòng'}
+                          {s.email} • {s.role === 'receptionist' ? t('header.receptionist') : t('header.housekeeping')}
                         </p>
                       </div>
                     ))}
@@ -174,7 +176,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             }}
           >
             <Trash2 className="w-5 h-5 mr-3" />
-            Reset dữ liệu
+            {t('menu.resetData')}
           </Button>
 
           <Button
@@ -186,7 +188,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             }}
           >
             <LogOut className="w-5 h-5 mr-3" />
-            Đăng xuất
+            {t('menu.logout')}
           </Button>
         </div>
 
@@ -196,20 +198,20 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <Dialog open={showHotelConfig} onOpenChange={setShowHotelConfig}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cấu hình Khách sạn</DialogTitle>
-            <DialogDescription>Cập nhật tên và địa chỉ khách sạn</DialogDescription>
+            <DialogTitle>{t('menu.hotelConfig')}</DialogTitle>
+            <DialogDescription>{t('menu.updateHotelInfo')}</DialogDescription>
           </DialogHeader>
           <form 
             onSubmit={(e) => {
               e.preventDefault();
               updateHotelInfo(hotelName, hotelAddress);
-              toast.success('Cập nhật thông tin khách sạn thành công!');
+              toast.success(t('menu.hotelUpdated'));
               setShowHotelConfig(false);
             }} 
             className="space-y-4"
           >
             <div>
-              <Label htmlFor="hotel-name">Tên khách sạn</Label>
+              <Label htmlFor="hotel-name">{t('menu.hotelName')}</Label>
               <Input
                 id="hotel-name"
                 value={hotelName}
@@ -219,7 +221,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               />
             </div>
             <div>
-              <Label htmlFor="hotel-address">Địa chỉ</Label>
+              <Label htmlFor="hotel-address">{t('menu.hotelAddress')}</Label>
               <Textarea
                 id="hotel-address"
                 value={hotelAddress}
@@ -229,7 +231,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               />
             </div>
             <Button type="submit" className="w-full">
-              Lưu thay đổi
+              {t('menu.saveChanges')}
             </Button>
           </form>
         </DialogContent>
@@ -238,12 +240,12 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <Dialog open={showAddStaff} onOpenChange={setShowAddStaff}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Thêm Nhân viên</DialogTitle>
-            <DialogDescription>Tạo tài khoản nhân viên mới cho khách sạn</DialogDescription>
+            <DialogTitle>{t('menu.addStaffTitle')}</DialogTitle>
+            <DialogDescription>{t('menu.addStaffDescription')}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddStaff} className="space-y-4">
             <div>
-              <Label htmlFor="staff-name">Tên nhân viên</Label>
+              <Label htmlFor="staff-name">{t('menu.staffName')}</Label>
               <Input
                 id="staff-name"
                 value={staffName}
@@ -253,7 +255,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               />
             </div>
             <div>
-              <Label htmlFor="staff-email">Email nhân viên</Label>
+              <Label htmlFor="staff-email">{t('menu.staffEmail')}</Label>
               <Input
                 id="staff-email"
                 type="email"
@@ -264,19 +266,19 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               />
             </div>
             <div>
-              <Label htmlFor="staff-role">Vai trò</Label>
+              <Label htmlFor="staff-role">{t('menu.staffRole')}</Label>
               <Select value={staffRole} onValueChange={(v: 'receptionist' | 'housekeeping') => setStaffRole(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="receptionist">Lễ tân</SelectItem>
-                  <SelectItem value="housekeeping">Buồng phòng</SelectItem>
+                  <SelectItem value="receptionist">{t('header.receptionist')}</SelectItem>
+                  <SelectItem value="housekeeping">{t('header.housekeeping')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button type="submit" className="w-full">
-              Thêm nhân viên
+              {t('menu.addStaff')}
             </Button>
           </form>
         </DialogContent>
@@ -290,20 +292,18 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl text-orange-600">⚠️ Xác nhận Reset dữ liệu</DialogTitle>
-            <DialogDescription className="text-base">
-              Hành động này sẽ xóa <strong>TẤT CẢ</strong> dữ liệu bao gồm:
-            </DialogDescription>
+            <DialogTitle className="text-xl text-orange-600">⚠️ {t('menu.confirmReset')}</DialogTitle>
+            <DialogDescription className="text-base" dangerouslySetInnerHTML={{ __html: t('menu.resetWarning') }} />
           </DialogHeader>
           <div className="space-y-2 text-sm text-gray-700">
-            <p>• Thông tin tài khoản và khách sạn</p>
-            <p>• Tất cả phòng và khách đã check-in</p>
-            <p>• Lịch sử thanh toán và báo cáo</p>
-            <p>• Cấu hình ngân hàng và tòa nhà</p>
+            <p>• {t('menu.resetItem1')}</p>
+            <p>• {t('menu.resetItem2')}</p>
+            <p>• {t('menu.resetItem3')}</p>
+            <p>• {t('menu.resetItem4')}</p>
           </div>
           <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
             <p className="text-sm text-orange-800">
-              <strong>Lưu ý:</strong> Dữ liệu sẽ được reset về trạng thái ban đầu. Bạn sẽ cần đăng ký lại tài khoản.
+              <strong>{t('menu.resetNoteLabel')}:</strong> {t('menu.resetNote')}
             </p>
           </div>
           <div className="flex gap-2 pt-2">
@@ -312,14 +312,14 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
               onClick={() => setShowResetConfirm(false)}
               className="flex-1"
             >
-              Hủy
+              {t('delete.cancel')}
             </Button>
             <Button 
               onClick={handleResetAllData}
               className="flex-1 bg-orange-600 hover:bg-orange-700"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Xác nhận Reset
+              {t('menu.confirmResetButton')}
             </Button>
           </div>
         </DialogContent>

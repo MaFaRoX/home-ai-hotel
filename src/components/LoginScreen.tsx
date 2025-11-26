@@ -10,9 +10,11 @@ import { Hotel } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { businessModelInfo } from '../utils/businessModelFeatures';
 import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export function LoginScreen() {
   const { hotel, businessModel, login, setupHotel } = useApp();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [hotelName, setHotelName] = useState('');
@@ -21,12 +23,12 @@ export function LoginScreen() {
   const handleSetupHotel = (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessModel) {
-      toast.error('Vui lòng chọn mô hình kinh doanh trước');
+      toast.error(t('login.errorSelectModel'));
       return;
     }
     setupHotel(hotelName, email, adminName, businessModel);
     setShowSetup(false);
-    toast.success('Khách sạn đã được thiết lập thành công!');
+    toast.success(t('login.setupSuccess'));
   };
 
   const handleGuestMode = () => {
@@ -37,7 +39,7 @@ export function LoginScreen() {
     } else {
       setEmail(hotel.adminEmail);
       login(hotel.adminEmail, 'Admin');
-      toast.success('Đăng nhập thành công!');
+      toast.success(t('login.success'));
     }
   };
 
@@ -52,7 +54,7 @@ export function LoginScreen() {
             <Hotel className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-gray-900 mb-2">Live Grid Hotel</h1>
-          <p className="text-gray-500">Một màn hình, Một chạm</p>
+          <p className="text-gray-500">{t('login.tagline')}</p>
           {modelInfo && (
             <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
               <span className="text-xl">{modelInfo.icon}</span>
@@ -69,7 +71,7 @@ export function LoginScreen() {
             onClick={handleGuestMode}
             size="lg"
           >
-            Tiếp tục với chế độ khách
+            {t('login.guestMode')}
           </Button>
         </div>
       </Card>
@@ -78,27 +80,27 @@ export function LoginScreen() {
       <Dialog open={showSetup} onOpenChange={setShowSetup}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Thiết lập Khách sạn</DialogTitle>
+            <DialogTitle>{t('login.setupTitle')}</DialogTitle>
             <DialogDescription>
-              Nhập thông tin khách sạn của bạn để bắt đầu
+              {t('login.setupDescription')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSetupHotel} className="space-y-4">
             <div>
-              <Label htmlFor="admin-name">Tên của bạn</Label>
+              <Label htmlFor="admin-name">{t('login.adminName')}</Label>
               <Input
                 id="admin-name"
-                placeholder="Nguyễn Văn A"
+                placeholder={t('login.adminNamePlaceholder')}
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="hotel-name">Tên khách sạn/nhà nghỉ</Label>
+              <Label htmlFor="hotel-name">{t('login.hotelName')}</Label>
               <Input
                 id="hotel-name"
-                placeholder="ABC Hotel"
+                placeholder={t('login.hotelNamePlaceholder')}
                 value={hotelName}
                 onChange={(e) => setHotelName(e.target.value)}
                 required
@@ -106,27 +108,27 @@ export function LoginScreen() {
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
               <p className="text-sm text-blue-900">
-                Email của bạn ({email}) sẽ được đăng ký làm tài khoản quản trị viên (Admin).
+                {t('login.emailInfo')} ({email}) {t('login.emailInfoAdmin')}
               </p>
               {businessModel === 'hotel' && (
                 <>
                   <p className="text-xs text-blue-700">
-                    Hệ thống sẽ tự động tạo 2 tài khoản nhân viên demo để bạn thử nghiệm:
+                    {t('login.demoStaffInfo')}
                   </p>
                   <ul className="text-xs text-blue-700 list-disc list-inside space-y-1">
-                    <li><strong>letan@demo.com</strong> - Lễ tân (có thể check-in/check-out)</li>
-                    <li><strong>buongphong@demo.com</strong> - Buồng phòng (có thể dọn phòng)</li>
+                    <li><strong>letan@demo.com</strong> - {t('login.demoReceptionist')}</li>
+                    <li><strong>buongphong@demo.com</strong> - {t('login.demoHousekeeping')}</li>
                   </ul>
                 </>
               )}
               {(businessModel === 'guesthouse' || businessModel === 'boarding-house') && (
                 <p className="text-xs text-blue-700">
-                  Với mô hình {businessModel === 'guesthouse' ? 'Nhà nghỉ' : 'Nhà trọ'}, bạn sẽ tự quản lý tất cả (không có nhân viên riêng).
+                  {businessModel === 'guesthouse' ? t('login.guesthouseInfo') : t('login.boardingHouseInfo')}
                 </p>
               )}
             </div>
             <Button type="submit" className="w-full">
-              Hoàn tất thiết lập
+              {t('login.completeSetup')}
             </Button>
           </form>
         </DialogContent>

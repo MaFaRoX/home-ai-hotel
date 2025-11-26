@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { Button } from './ui/button';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Download, Printer } from 'lucide-react';
 
 interface InvoicePDFProps {
@@ -31,6 +32,7 @@ interface InvoicePDFProps {
 }
 
 export function InvoicePDF({ invoice }: InvoicePDFProps) {
+  const { t } = useLanguage();
   const printRef = useRef<HTMLDivElement>(null);
 
   const formatCurrency = (value: number) => {
@@ -210,11 +212,11 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
       <div className="flex gap-2 mb-4 no-print">
         <Button onClick={handlePrint} variant="outline" className="flex-1">
           <Printer className="w-4 h-4 mr-2" />
-          In hóa đơn
+          {t('invoicePDF.print')}
         </Button>
         <Button onClick={handleDownloadPDF} className="flex-1">
           <Download className="w-4 h-4 mr-2" />
-          Tải PDF
+          {t('invoicePDF.download')}
         </Button>
       </div>
 
@@ -234,35 +236,35 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
 
         {/* Title */}
         <div className="invoice-title text-3xl font-bold text-center text-blue-600 my-8">
-          HÓA ĐƠN GIÁ TRỊ GIA TĂNG
+          {t('invoicePDF.vatInvoice')}
         </div>
 
         {/* Invoice Number */}
         {invoice.invoiceNumber && (
           <div className="invoice-number text-center text-gray-600 mb-8">
-            Số: {invoice.invoiceNumber}
+            {t('invoicePDF.invoiceNumber')} {invoice.invoiceNumber}
           </div>
         )}
 
         {/* Customer & Invoice Info */}
         <div className="info-section grid grid-cols-2 gap-4 mb-8">
           <div className="info-box border rounded p-4">
-            <div className="info-label text-xs text-gray-600 mb-1">Khách hàng</div>
-            <div className="info-value font-semibold">{invoice.customerName || 'Khách lẻ'}</div>
+            <div className="info-label text-xs text-gray-600 mb-1">{t('invoicePDF.customer')}</div>
+            <div className="info-value font-semibold">{invoice.customerName || t('invoiceHistory.retail')}</div>
           </div>
           
           <div className="info-box border rounded p-4">
-            <div className="info-label text-xs text-gray-600 mb-1">Mã số thuế</div>
+            <div className="info-label text-xs text-gray-600 mb-1">{t('invoicePDF.taxCode')}</div>
             <div className="info-value font-semibold">{invoice.customerTaxCode || '-'}</div>
           </div>
 
           <div className="info-box border rounded p-4">
-            <div className="info-label text-xs text-gray-600 mb-1">Email</div>
+            <div className="info-label text-xs text-gray-600 mb-1">{t('invoicePDF.email')}</div>
             <div className="info-value font-semibold">{invoice.customerEmail || '-'}</div>
           </div>
 
           <div className="info-box border rounded p-4">
-            <div className="info-label text-xs text-gray-600 mb-1">Ngày lập</div>
+            <div className="info-label text-xs text-gray-600 mb-1">{t('invoicePDF.createdDate')}</div>
             <div className="info-value font-semibold">{formatDate(invoice.createdAt)}</div>
           </div>
         </div>
@@ -272,22 +274,22 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
           <thead>
             <tr className="bg-gray-100">
               <th className="border p-3 text-left">STT</th>
-              <th className="border p-3 text-left">Dịch vụ</th>
-              <th className="border p-3 text-left">Thời gian</th>
-              <th className="border p-3 text-right">Đơn giá</th>
-              <th className="border p-3 text-right">Thành tiền</th>
+              <th className="border p-3 text-left">{t('invoicePDF.service')}</th>
+              <th className="border p-3 text-left">{t('room.checkinDate')}</th>
+              <th className="border p-3 text-right">{t('invoicePDF.unitPrice')}</th>
+              <th className="border p-3 text-right">{t('invoicePDF.amount')}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td className="border p-3">1</td>
               <td className="border p-3">
-                <div className="font-semibold">Dịch vụ lưu trú</div>
-                <div className="text-sm text-gray-600">Phòng {invoice.roomNumber}</div>
+                <div className="font-semibold">{t('invoicePDF.accommodation')}</div>
+                <div className="text-sm text-gray-600">{t('invoiceHistory.room')} {invoice.roomNumber}</div>
               </td>
               <td className="border p-3 text-sm">
-                <div>Nhận: {formatDate(invoice.checkInDate)}</div>
-                <div>Trả: {formatDate(invoice.checkOutDate)}</div>
+                <div>{t('invoicePDF.checkin')} {formatDate(invoice.checkInDate)}</div>
+                <div>{t('invoicePDF.checkout')} {formatDate(invoice.checkOutDate)}</div>
               </td>
               <td className="border p-3 text-right">
                 {formatCurrency(invoice.amountBeforeVAT)}₫
@@ -302,26 +304,26 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
         {/* Total Section */}
         <div className="total-section border-t-2 border-gray-800 pt-4 mt-6">
           <div className="total-row flex justify-between py-2">
-            <span>Tổng tiền hàng (chưa VAT)</span>
+            <span>{t('invoicePDF.totalBeforeVAT')}</span>
             <span className="font-semibold">{formatCurrency(invoice.amountBeforeVAT)}₫</span>
           </div>
           
           {invoice.vatRate > 0 && (
             <div className="total-row flex justify-between py-2">
-              <span>VAT ({invoice.vatRate}%)</span>
+              <span>{t('invoicePDF.vat')} ({invoice.vatRate}%)</span>
               <span className="font-semibold">{formatCurrency(invoice.vatAmount)}₫</span>
             </div>
           )}
           
           <div className="total-row final flex justify-between py-3 mt-3 border-t text-lg font-bold text-blue-600">
-            <span>TỔNG CỘNG</span>
+            <span>{t('invoicePDF.total')}</span>
             <span>{formatCurrency(invoice.totalAmount)}₫</span>
           </div>
 
           <div className="text-sm text-gray-600 mt-4">
-            <p>Hình thức thanh toán: {invoice.paymentMethod}</p>
+            <p>{t('invoicePDF.paymentMethod')} {invoice.paymentMethod}</p>
             <p className="italic mt-2">
-              Số tiền bằng chữ: <span className="font-semibold">{convertNumberToVietnameseWords(invoice.totalAmount)} đồng</span>
+              {t('invoicePDF.amountInWords')} <span className="font-semibold">{convertNumberToVietnameseWords(invoice.totalAmount)} {t('invoicePDF.dong')}</span>
             </p>
           </div>
         </div>
@@ -329,19 +331,19 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
         {/* Signature Section */}
         <div className="signature-section grid grid-cols-2 gap-8 mt-12">
           <div className="signature-box text-center">
-            <div className="signature-title font-semibold mb-16">Khách hàng</div>
-            <div className="signature-name italic text-gray-600">(Ký, ghi rõ họ tên)</div>
+            <div className="signature-title font-semibold mb-16">{t('invoicePDF.customerSignature')}</div>
+            <div className="signature-name italic text-gray-600">{t('invoicePDF.customerSignatureNote')}</div>
           </div>
           <div className="signature-box text-center">
-            <div className="signature-title font-semibold mb-16">Người lập phiếu</div>
-            <div className="signature-name italic text-gray-600">(Ký, ghi rõ họ tên)</div>
+            <div className="signature-title font-semibold mb-16">{t('invoicePDF.creatorSignature')}</div>
+            <div className="signature-name italic text-gray-600">{t('invoicePDF.creatorSignatureNote')}</div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="footer text-center text-xs text-gray-500 mt-12 pt-6 border-t">
-          <p>Cảm ơn quý khách đã sử dụng dịch vụ!</p>
-          <p className="mt-2">Hóa đơn được xuất tự động từ hệ thống quản lý khách sạn</p>
+          <p>{t('invoicePDF.thankYou')}</p>
+          <p className="mt-2">{t('invoicePDF.autoGenerated')}</p>
         </div>
       </div>
     </div>

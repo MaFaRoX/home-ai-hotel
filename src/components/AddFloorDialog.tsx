@@ -10,6 +10,7 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AddFloorDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface AddFloorDialogProps {
 
 export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialogProps) {
   const { addRoom, rooms, hotel } = useApp();
+  const { t } = useLanguage();
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || '');
   const [floorNumber, setFloorNumber] = useState<number>(1);
   const [floorName, setFloorName] = useState<string>('');
@@ -40,7 +42,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       const maxFloor = buildingFloors.length > 0 ? Math.max(...buildingFloors) : 0;
       const nextFloor = maxFloor + 1;
       setFloorNumber(nextFloor);
-      setFloorName(`Tầng ${nextFloor}`);
+      setFloorName(`${t('add.floorNumber')} ${nextFloor}`);
       setNumberOfRooms(10);
     }
   }, [open, rooms, selectedBuildingId]);
@@ -49,17 +51,17 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
     e.preventDefault();
 
     if (!selectedBuildingId) {
-      toast.error('Vui lòng chọn tòa nhà');
+      toast.error(t('add.errorSelectBuilding'));
       return;
     }
 
     if (!floorNumber || floorNumber < 0) {
-      toast.error('Vui lòng nhập số tầng hợp lệ');
+      toast.error(t('add.errorFloorNumber'));
       return;
     }
 
     if (numberOfRooms < 1 || numberOfRooms > 50) {
-      toast.error('Số phòng phải từ 1 đến 50');
+      toast.error(t('add.errorRoomCount'));
       return;
     }
 
@@ -69,7 +71,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       (r.buildingId || 'default') === selectedBuildingId
     );
     if (floorExists) {
-      toast.error(`Tầng ${floorNumber} đã tồn tại. Vui lòng chọn số tầng khác.`);
+      toast.error(`${t('add.floorNumber')} ${floorNumber} ${t('add.errorFloorExists')}`);
       return;
     }
 
@@ -95,8 +97,8 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
     // Add all rooms to the context at once
     newRooms.forEach(room => addRoom(room));
 
-    toast.success(`✅ Đã tạo tầng ${floorNumber} với ${numberOfRooms} phòng`, {
-      description: `Phòng ${newRooms[0].number} - ${newRooms[newRooms.length - 1].number}`
+    toast.success(`✅ ${t('add.floorCreated')} ${floorNumber} ${t('add.withRooms')} ${numberOfRooms} ${t('building.rooms')}`, {
+      description: `${t('common.room')} ${newRooms[0].number} - ${newRooms[newRooms.length - 1].number}`
     });
 
     onClose();
@@ -108,10 +110,10 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="w-6 h-6 text-blue-600" />
-            Thêm Tầng Mới
+            {t('add.floorTitle')}
           </DialogTitle>
           <DialogDescription>
-            Tạo tầng mới với nhiều phòng trong một thao tác
+            {t('add.floorDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -121,11 +123,11 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
             <div className="space-y-2">
               <Label htmlFor="building-select" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
-                Tòa nhà <span className="text-red-500">*</span>
+                {t('add.building')} <span className="text-red-500">*</span>
               </Label>
               <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn tòa nhà..." />
+                  <SelectValue placeholder={t('add.selectBuilding')} />
                 </SelectTrigger>
                 <SelectContent>
                   {hotel?.buildings?.map(building => (
@@ -141,7 +143,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
           {/* Floor Number */}
           <div className="space-y-2">
             <Label htmlFor="floorNumber" className="text-base">
-              Số Tầng <span className="text-red-500">*</span>
+              {t('add.floorNumberLabel')} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="floorNumber"
@@ -151,38 +153,38 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
               onChange={(e) => {
                 const value = parseInt(e.target.value);
                 setFloorNumber(value);
-                setFloorName(`Tầng ${value}`);
+                setFloorName(`${t('add.floorNumber')} ${value}`);
               }}
               className="text-lg"
               required
             />
             <p className="text-sm text-gray-500">
-              Ví dụ: 1, 2, 3... (Tầng tiếp theo: {Math.max(...rooms.map(r => r.floor), 0) + 1})
+              {t('add.floorNumberExample')} ({t('add.nextFloor')}: {Math.max(...rooms.map(r => r.floor), 0) + 1})
             </p>
           </div>
 
           {/* Floor Name (Optional) */}
           <div className="space-y-2">
             <Label htmlFor="floorName" className="text-base">
-              Tên Tầng (Tùy chọn)
+              {t('add.floorName')}
             </Label>
             <Input
               id="floorName"
               type="text"
               value={floorName}
               onChange={(e) => setFloorName(e.target.value)}
-              placeholder="Tầng 2, Tầng trệt..."
+              placeholder={t('add.floorNamePlaceholder')}
               className="text-lg"
             />
             <p className="text-sm text-gray-500">
-              Tên hiển thị cho tầng này (chưa sử dụng trong bản này)
+              {t('add.floorNameHint')}
             </p>
           </div>
 
           {/* Number of Rooms */}
           <div className="space-y-2">
             <Label htmlFor="numberOfRooms" className="text-base">
-              Số Phòng Tạo Tự Động <span className="text-red-500">*</span>
+              {t('add.autoCreateRooms')} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="numberOfRooms"
@@ -195,18 +197,18 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
               required
             />
             <p className="text-sm text-gray-500">
-              Hệ thống sẽ tạo {numberOfRooms} phòng với số: {floorNumber}01 - {floorNumber}{numberOfRooms.toString().padStart(2, '0')}
+              {t('add.autoCreateRoomsHint')} {numberOfRooms} {t('add.roomsWithNumbers')}: {floorNumber}01 - {floorNumber}{numberOfRooms.toString().padStart(2, '0')}
             </p>
           </div>
 
           {/* Preview */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-semibold text-blue-900 mb-2">🔍 Xem trước:</p>
+            <p className="text-sm font-semibold text-blue-900 mb-2">🔍 {t('add.preview')}:</p>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• <strong>Tầng:</strong> {floorNumber} ({floorName})</li>
-              <li>• <strong>Số phòng:</strong> {numberOfRooms} phòng</li>
-              <li>• <strong>Phòng:</strong> {floorNumber}01, {floorNumber}02, ... {floorNumber}{numberOfRooms.toString().padStart(2, '0')}</li>
-              <li>• <strong>Giá mặc định:</strong> 300,000₫/ngày, 50,000₫/giờ</li>
+              <li>• <strong>{t('add.previewFloor')}:</strong> {floorNumber} ({floorName})</li>
+              <li>• <strong>{t('add.previewRooms')}:</strong> {numberOfRooms} {t('building.rooms')}</li>
+              <li>• <strong>{t('add.previewRoomNumbers')}:</strong> {floorNumber}01, {floorNumber}02, ... {floorNumber}{numberOfRooms.toString().padStart(2, '0')}</li>
+              <li>• <strong>{t('add.previewDefaultPrice')}:</strong> 300,000₫/{t('room.daily').toLowerCase()}, 50,000₫/{t('room.hourly').toLowerCase()}</li>
             </ul>
           </div>
 
@@ -218,14 +220,14 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
               onClick={onClose}
               className="flex-1 text-lg py-6"
             >
-              Hủy
+              {t('delete.cancel')}
             </Button>
             <Button
               type="submit"
               className="flex-1 text-lg py-6 bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="w-5 h-5 mr-2" />
-              Tạo Tầng
+              {t('add.createFloor')}
             </Button>
           </div>
         </form>

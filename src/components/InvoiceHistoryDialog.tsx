@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
+import { useLanguage } from '../contexts/LanguageContext';
 import { 
   FileText, 
   Search, 
@@ -51,6 +52,7 @@ interface Invoice {
 }
 
 export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialogProps) {
+  const { t } = useLanguage();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,20 +125,20 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; variant: any }> = {
-      draft: { label: 'Nháp', variant: 'secondary' },
-      issued: { label: 'Đã xuất', variant: 'default' },
-      sent: { label: 'Đã gửi', variant: 'outline' },
-      paid: { label: 'Đã thanh toán', variant: 'default' }
+    const statusConfig: Record<string, { labelKey: string; variant: any }> = {
+      draft: { labelKey: 'invoiceHistory.draft', variant: 'secondary' },
+      issued: { labelKey: 'invoiceHistory.issued', variant: 'default' },
+      sent: { labelKey: 'invoiceHistory.sent', variant: 'outline' },
+      paid: { labelKey: 'payment.completePayment', variant: 'default' }
     };
 
     const config = statusConfig[status] || statusConfig.draft;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={config.variant}>{t(config.labelKey as any)}</Badge>;
   };
 
   const handleSendEmail = (invoice: Invoice) => {
     if (!invoice.customerEmail) {
-      alert('Không có email khách hàng');
+      alert(t('invoiceHistory.noEmail'));
       return;
     }
 
@@ -144,7 +146,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
     
     // Simulate sending email - in frontend-only mode
     setTimeout(() => {
-      alert(`✅ Giả lập gửi hóa đơn đến ${invoice.customerEmail} thành công! (Chế độ frontend-only)`);
+      alert(t('invoiceHistory.emailSent').replace('{email}', invoice.customerEmail || ''));
       
       // Update status in localStorage
       const updated = invoices.map(inv => 
@@ -165,7 +167,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                Chi tiết hóa đơn
+                {t('invoiceHistory.detail')}
               </DialogTitle>
               <Button
                 variant="ghost"
@@ -176,7 +178,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
               </Button>
             </div>
             <DialogDescription>
-              Xem chi tiết và thao tác với hóa đơn đã xuất
+              {t('invoiceHistory.viewDetail')}
             </DialogDescription>
           </DialogHeader>
 
@@ -190,7 +192,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
                 disabled={!selectedInvoice.customerEmail || sendingEmail === selectedInvoice.id}
               >
                 <Mail className="w-4 h-4 mr-2" />
-                {sendingEmail === selectedInvoice.id ? 'Đang gửi...' : 'Gửi Email'}
+                {sendingEmail === selectedInvoice.id ? t('invoiceHistory.sending') : t('invoiceHistory.sendEmail')}
               </Button>
             </div>
 
@@ -208,10 +210,10 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Lịch sử hóa đơn
+            {t('invoiceHistory.title')}
           </DialogTitle>
           <DialogDescription>
-            Xem, tìm kiếm và quản lý tất cả hóa đơn đã xuất
+            {t('invoiceHistory.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -221,7 +223,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                placeholder="Tìm kiếm theo số HĐ, tên KH, phòng..."
+                placeholder={t('invoiceHistory.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -234,21 +236,21 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
                 size="sm"
                 onClick={() => setStatusFilter('all')}
               >
-                Tất cả
+                {t('invoiceHistory.all')}
               </Button>
               <Button
                 variant={statusFilter === 'issued' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setStatusFilter('issued')}
               >
-                Đã xuất
+                {t('invoiceHistory.issued')}
               </Button>
               <Button
                 variant={statusFilter === 'sent' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setStatusFilter('sent')}
               >
-                Đã gửi
+                {t('invoiceHistory.sent')}
               </Button>
             </div>
           </div>
@@ -256,12 +258,12 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
           {/* Invoice List */}
           {loading ? (
             <div className="text-center py-12 text-gray-500">
-              Đang tải...
+              {t('invoiceHistory.loading')}
             </div>
           ) : filteredInvoices.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>Chưa có hóa đơn nào</p>
+              <p>{t('invoiceHistory.noInvoices')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -280,7 +282,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
                       <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <User className="w-3 h-3" />
-                          {invoice.customerName || 'Khách lẻ'}
+                          {invoice.customerName || t('invoiceHistory.retail')}
                         </div>
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-3 h-3" />
@@ -292,7 +294,7 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
                         </div>
                         <div className="flex items-center gap-2">
                           <FileText className="w-3 h-3" />
-                          Phòng {invoice.roomNumber}
+                          {t('invoiceHistory.room')} {invoice.roomNumber}
                         </div>
                       </div>
                     </div>
@@ -327,10 +329,10 @@ export function InvoiceHistoryDialog({ open, onOpenChange }: InvoiceHistoryDialo
             <Card className="p-4 bg-blue-50 border-blue-200">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">
-                  Tổng số hóa đơn: <span className="font-semibold">{filteredInvoices.length}</span>
+                  {t('invoiceHistory.totalInvoices')} <span className="font-semibold">{filteredInvoices.length}</span>
                 </span>
                 <span className="text-sm text-gray-600">
-                  Tổng giá trị:{' '}
+                  {t('invoiceHistory.totalValue')}{' '}
                   <span className="font-semibold text-blue-600">
                     {formatCurrency(
                       filteredInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0)

@@ -7,6 +7,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ExportReportButtons } from './ExportReportButtons';
+import { useLanguage } from '../contexts/LanguageContext';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -32,6 +33,7 @@ interface RevenueData {
 
 export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDialogProps) {
   const { rooms } = useApp();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'today' | 'month' | 'year'>('today');
 
   const formatCurrency = (amount: number) => {
@@ -50,7 +52,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
           roomNumber: room.number,
           guestName: room.guest.name,
           isHourly: room.guest.isHourly || false,
-          paymentMethod: 'Đã thu' // Simplified
+          paymentMethod: t('revenue.paid') // Simplified
         });
       }
     });
@@ -119,7 +121,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
 
   const formatMonth = (monthStr: string) => {
     const [year, month] = monthStr.split('-');
-    return `Tháng ${month}/${year}`;
+    return `${t('revenue.monthFormat')} ${month}/${year}`;
   };
 
   return (
@@ -128,23 +130,23 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold flex items-center gap-2">
             <DollarSign className="w-8 h-8 text-green-600" />
-            Báo cáo Doanh thu
+            {t('revenue.title')}
           </DialogTitle>
           <DialogDescription>
-            Theo dõi doanh thu theo ngày, tháng, năm
+            {t('revenue.description')}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="today" className="text-base">
-              Hôm nay
+              {t('revenue.today')}
             </TabsTrigger>
             <TabsTrigger value="month" className="text-base">
-              Tháng này
+              {t('revenue.month')}
             </TabsTrigger>
             <TabsTrigger value="year" className="text-base">
-              Năm nay
+              {t('revenue.year')}
             </TabsTrigger>
           </TabsList>
 
@@ -166,40 +168,40 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
 
             <div className="grid grid-cols-3 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">Tổng</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.total')}</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatCurrency(todayTotal)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {todayRevenue.length} lượt
+                  {todayRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">Theo giờ</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {formatCurrency(todayHourly)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {todayRevenue.filter(r => r.isHourly).length} lượt
+                  {todayRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">Theo ngày</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
                 <p className="text-2xl font-bold text-purple-600">
                   {formatCurrency(todayDaily)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {todayRevenue.filter(r => !r.isHourly).length} lượt
+                  {todayRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>
 
             <Card className="p-4">
-              <h3 className="font-semibold text-lg mb-3">Chi tiết hôm nay</h3>
+              <h3 className="font-semibold text-lg mb-3">{t('revenue.todayDetails')}</h3>
               {todayRevenue.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Chưa có doanh thu hôm nay</p>
+                <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueToday')}</p>
               ) : (
                 <div className="space-y-2">
                   {todayRevenue.map((item, idx) => (
@@ -209,7 +211,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           <Home className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-semibold">Phòng {item.roomNumber}</p>
+                          <p className="font-semibold">{t('common.room')} {item.roomNumber}</p>
                           <p className="text-sm text-gray-600">{item.guestName}</p>
                           <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
                         </div>
@@ -219,7 +221,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           {formatCurrency(item.amount)}₫
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {item.isHourly ? 'Giờ' : 'Ngày'}
+                          {item.isHourly ? t('room.hourly') : t('room.daily')}
                         </Badge>
                       </div>
                     </div>
@@ -247,42 +249,42 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
 
             <div className="grid grid-cols-3 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">Tổng tháng</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.totalMonth')}</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatCurrency(monthTotal)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {monthRevenue.length} lượt
+                  {monthRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">Theo giờ</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {formatCurrency(monthHourly)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {monthRevenue.filter(r => r.isHourly).length} lượt
+                  {monthRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">Theo ngày</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
                 <p className="text-2xl font-bold text-purple-600">
                   {formatCurrency(monthDaily)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {monthRevenue.filter(r => !r.isHourly).length} lượt
+                  {monthRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>
 
             <Card className="p-4">
               <h3 className="font-semibold text-lg mb-3">
-                Chi tiết {formatMonth(currentMonth)}
+                {t('revenue.monthDetails')} {formatMonth(currentMonth)}
               </h3>
               {monthRevenue.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Chưa có doanh thu tháng này</p>
+                <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueMonth')}</p>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {monthRevenue.map((item, idx) => (
@@ -292,7 +294,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           <Home className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-semibold">Phòng {item.roomNumber}</p>
+                          <p className="font-semibold">{t('common.room')} {item.roomNumber}</p>
                           <p className="text-sm text-gray-600">{item.guestName}</p>
                           <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
                         </div>
@@ -302,7 +304,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           {formatCurrency(item.amount)}₫
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {item.isHourly ? 'Giờ' : 'Ngày'}
+                          {item.isHourly ? t('room.hourly') : t('room.daily')}
                         </Badge>
                       </div>
                     </div>
@@ -330,32 +332,32 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
 
             <div className="grid grid-cols-3 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">Tổng năm</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.totalYear')}</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatCurrency(yearTotal)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {yearRevenue.length} lượt
+                  {yearRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">Theo giờ</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {formatCurrency(yearHourly)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {yearRevenue.filter(r => r.isHourly).length} lượt
+                  {yearRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">Theo ngày</p>
+                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
                 <p className="text-2xl font-bold text-purple-600">
                   {formatCurrency(yearDaily)}₫
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  {yearRevenue.filter(r => !r.isHourly).length} lượt
+                  {yearRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>
@@ -363,17 +365,17 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             <Card className="p-4">
               <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Doanh thu theo tháng ({currentYear})
+                {t('revenue.monthlyRevenue')} ({currentYear})
               </h3>
               {monthlyBreakdown.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Chưa có doanh thu năm nay</p>
+                <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
               ) : (
                 <div className="space-y-2">
                   {monthlyBreakdown.map((item) => (
                     <div key={item.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-semibold">{formatMonth(item.month)}</p>
-                        <p className="text-sm text-gray-600">{item.count} lượt check-in</p>
+                        <p className="text-sm text-gray-600">{item.count} {t('revenue.checkins')}</p>
                       </div>
                       <p className="text-xl font-bold text-green-600">
                         {formatCurrency(item.total)}₫

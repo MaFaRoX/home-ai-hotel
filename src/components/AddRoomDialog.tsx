@@ -12,6 +12,7 @@ import { Home, DoorOpen, DollarSign, Clock, Layers, Bed } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { MoneyInput } from './MoneyInput';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AddRoomDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ interface AddRoomDialogProps {
 
 export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: AddRoomDialogProps) {
   const { hotel, addRoom, businessModel, rooms } = useApp();
+  const { t } = useLanguage();
   const [roomNumber, setRoomNumber] = useState('');
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || defaultBuildingId || '');
   const [selectedFloor, setSelectedFloor] = useState('1');
@@ -34,27 +36,27 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     e.preventDefault();
 
     if (!roomNumber.trim()) {
-      toast.error('Vui lòng nhập số phòng');
+      toast.error(t('add.errorRoomNumber'));
       return;
     }
 
     if (!selectedBuildingId) {
-      toast.error('Vui lòng chọn khu trọ');
+      toast.error(t('add.errorBuilding'));
       return;
     }
 
     if (!selectedFloor || availableFloors.length === 0 || !availableFloors.includes(parseInt(selectedFloor))) {
-      toast.error('Vui lòng chọn tầng hợp lệ. Nếu chưa có tầng, vui lòng tạo tầng mới trước.');
+      toast.error(t('add.errorFloor'));
       return;
     }
 
     if (!price || parseFloat(price) <= 0) {
-      toast.error('Vui lòng nhập giá phòng hợp lệ');
+      toast.error(t('add.errorPrice'));
       return;
     }
 
     if (isGuesthouse && (!hourlyRate || parseFloat(hourlyRate) <= 0)) {
-      toast.error('Vui lòng nhập giá theo giờ hợp lệ');
+      toast.error(t('add.errorHourlyRate'));
       return;
     }
 
@@ -70,7 +72,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     };
 
     addRoom(newRoom);
-    toast.success(`Đã thêm phòng ${roomNumber} (Tầng ${selectedFloor})`);
+    toast.success(`${t('add.roomAdded')} ${roomNumber} (${t('floor.floor')} ${selectedFloor})`);
     
     // Reset form
     setRoomNumber('');
@@ -168,10 +170,10 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <DoorOpen className="w-6 h-6 text-green-600" />
-            {isGuesthouse ? 'Thêm Phòng Mới' : 'Thêm Phòng Trọ Mới'}
+            {isGuesthouse ? t('add.roomTitle') : t('add.roomTitleBoarding')}
           </DialogTitle>
           <DialogDescription>
-            Tạo phòng mới để {isGuesthouse ? 'phục vụ khách' : 'cho thuê'}
+            {isGuesthouse ? t('add.roomDescription') : t('add.roomDescriptionBoarding')}
           </DialogDescription>
         </DialogHeader>
 
@@ -181,11 +183,11 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
             <div className="space-y-2">
               <Label htmlFor="building-select" className="flex items-center gap-2">
                 <Home className="w-4 h-4" />
-                {isGuesthouse ? 'Tòa nhà' : 'Khu Trọ'} <span className="text-red-500">*</span>
+                {isGuesthouse ? t('add.building') : t('add.buildingBoarding')} <span className="text-red-500">*</span>
               </Label>
               <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={isGuesthouse ? "Chọn tòa nhà..." : "Chọn khu trọ..."} />
+                  <SelectValue placeholder={isGuesthouse ? t('add.selectBuilding') : t('add.selectBuildingBoarding')} />
                 </SelectTrigger>
                 <SelectContent>
                   {hotel?.buildings.map(building => (
@@ -202,7 +204,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           <div className="space-y-2">
             <Label htmlFor="room-number" className="flex items-center gap-2">
               <DoorOpen className="w-4 h-4" />
-              Số Phòng <span className="text-red-500">*</span>
+              {t('add.roomNumber')} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="room-number"
@@ -213,7 +215,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               autoFocus
             />
             <p className="text-xs text-gray-500">
-              Số phòng duy nhất, dễ nhớ
+              {t('add.roomNumberHint')}
             </p>
           </div>
 
@@ -221,35 +223,35 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           <div className="space-y-2">
             <Label htmlFor="floor-select" className="flex items-center gap-2">
               <Layers className="w-4 h-4" />
-              Tầng <span className="text-red-500">*</span>
+              {t('add.floor')} <span className="text-red-500">*</span>
             </Label>
             {availableFloors.length > 0 ? (
               <>
                 <Select value={selectedFloor} onValueChange={setSelectedFloor}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn tầng..." />
+                    <SelectValue placeholder={t('add.selectFloor')} />
                   </SelectTrigger>
                   <SelectContent>
                     {availableFloors.map(floor => (
                       <SelectItem key={floor} value={floor.toString()}>
-                        Tầng {floor}
+                        {t('add.floorNumber')} {floor}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
-                  Chọn tầng hiện có. Để tạo tầng mới, sử dụng chức năng "Thêm Tầng"
+                  {t('add.floorHint')}
                 </p>
               </>
             ) : (
               <>
                 <Select disabled>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chưa có tầng nào" />
+                    <SelectValue placeholder={t('add.noFloors')} />
                   </SelectTrigger>
                 </Select>
                 <p className="text-xs text-amber-600">
-                  ⚠️ Chưa có tầng nào trong tòa nhà này. Vui lòng tạo tầng mới trước.
+                  ⚠️ {t('add.noFloorsWarning')}
                 </p>
               </>
             )}
@@ -259,11 +261,11 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           <div className="space-y-2">
             <Label htmlFor="room-type" className="flex items-center gap-2">
               <Bed className="w-4 h-4" />
-              Loại Phòng <span className="text-red-500">*</span>
+              {t('add.roomType')} <span className="text-red-500">*</span>
             </Label>
             <Select value={roomType} onValueChange={(value) => setRoomType(value as RoomType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Chọn loại phòng..." />
+                <SelectValue placeholder={t('add.selectRoomType')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Single">Single</SelectItem>
@@ -274,7 +276,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              Chọn loại phòng phù hợp
+              {t('add.roomTypeHint')}
             </p>
           </div>
 
@@ -283,7 +285,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
             <div className="space-y-2">
               <Label htmlFor="hourly-rate" className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                Giá Theo Giờ <span className="text-red-500">*</span>
+                {t('add.hourlyPrice')} <span className="text-red-500">*</span>
               </Label>
               <MoneyInput
                 id="hourly-rate"
@@ -291,7 +293,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
                 onChange={setHourlyRate}
                 placeholder="80000"
                 className="text-lg"
-                suffix="/giờ"
+                suffix={`/${t('room.hourly').toLowerCase()}`}
                 required
               />
               {hourlyRate && parseFloat(hourlyRate) > 0 && (
@@ -306,7 +308,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           <div className="space-y-2">
             <Label htmlFor="room-price" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              {isGuesthouse ? 'Giá Theo Ngày' : 'Giá Thuê / Tháng'} <span className="text-red-500">*</span>
+              {isGuesthouse ? t('add.dailyPriceGuesthouse') : t('add.monthlyPriceBoarding')} <span className="text-red-500">*</span>
             </Label>
             <MoneyInput
               id="room-price"
@@ -314,12 +316,12 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               onChange={setPrice}
               placeholder={isGuesthouse ? "300000" : "2000000"}
               className="text-lg"
-              suffix={isGuesthouse ? '/ngày' : ''}
+              suffix={isGuesthouse ? `/${t('room.daily').toLowerCase()}` : ''}
               required
             />
             {price && parseFloat(price) > 0 && (
               <p className="text-xs text-gray-600">
-                ≈ ₫{parseFloat(price).toLocaleString()} / {isGuesthouse ? 'ngày' : 'tháng'}
+                ≈ ₫{parseFloat(price).toLocaleString()} / {isGuesthouse ? t('room.daily').toLowerCase() : 'month'}
               </p>
             )}
           </div>
@@ -327,9 +329,9 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-800">
-              💡 <strong>Lưu ý:</strong> {isGuesthouse 
-                ? 'Giá theo giờ và theo ngày sẽ được sử dụng khi check-in khách.' 
-                : 'Sau khi tạo phòng, bạn có thể thêm người thuê và cài đặt giá điện/nước bằng cách click vào phòng.'}
+              💡 <strong>{t('menu.resetNoteLabel')}:</strong> {isGuesthouse 
+                ? t('add.priceHintGuesthouse')
+                : t('add.priceHintBoarding')}
             </p>
           </div>
 
@@ -341,14 +343,14 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               onClick={handleClose}
               className="flex-1"
             >
-              Hủy
+              {t('delete.cancel')}
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
               <DoorOpen className="w-4 h-4 mr-2" />
-              Tạo Phòng
+              {t('add.submitButton')}
             </Button>
           </div>
         </form>

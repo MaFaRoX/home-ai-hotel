@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GuestHousePaymentDialog } from './GuestHousePaymentDialog';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GuestHouseRoomDialogProps {
   room: Room;
@@ -42,6 +43,7 @@ interface GuestHouseRoomDialogProps {
 
 export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHouseRoomDialogProps) {
   const { updateRoom, user, deleteRoom, hotel } = useApp();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'info' | 'checkin'>('info');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   
@@ -130,7 +132,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     e.preventDefault();
     
     if (!guestName.trim()) {
-      toast.error('Vui lòng nhập tên khách');
+      toast.error(t('room.errorGuestName'));
       return;
     }
     
@@ -164,8 +166,8 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       }
     });
     toast.success(rentalType === 'hourly'
-      ? `✅ Đã check-in phòng ${room.number} (${hours} giờ)` 
-      : `✅ Đã check-in phòng ${room.number} (theo ngày)`
+      ? `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${hours} ${t('room.hours')})` 
+      : `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${t('room.checkinSuccessDaily')})`
     );
     
     // Reset form
@@ -185,7 +187,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       status: 'vacant-dirty',
       guest: undefined
     });
-    toast.success(`✅ Đã trả phòng ${room.number} và thanh toán`);
+    toast.success(`✅ ${t('room.checkoutSuccess')} ${room.number} ${t('action.payment')}`);
     setShowPaymentDialog(false);
     onClose();
   };
@@ -194,19 +196,19 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     updateRoom(room.id, {
       status: 'vacant-clean'
     });
-    toast.success(`Phòng ${room.number} đã sạch`);
+    toast.success(`${t('common.room')} ${room.number} ${t('room.markedClean')}`);
     onClose();
   };
 
   const handleDeleteRoom = () => {
     if (room.guest) {
-      toast.error('Không thể xóa phòng đang có khách');
+      toast.error(t('room.errorDeleteOccupied'));
       return;
     }
     
-    if (window.confirm(`Xác nhận xóa phòng ${room.number}?`)) {
+    if (window.confirm(`${t('room.confirmDelete')} ${room.number}?`)) {
       deleteRoom(room.id);
-      toast.success(`Đã xóa phòng ${room.number}`);
+      toast.success(`${t('room.deleteSuccess')} ${room.number}`);
       onClose();
       if (onDelete) onDelete();
     }
@@ -217,12 +219,12 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
     const hourlyRate = parseFloat(editedHourlyRate);
 
     if (isNaN(price) || price <= 0) {
-      toast.error('Giá theo ngày phải là số dương');
+      toast.error(t('room.errorPriceDaily'));
       return;
     }
 
     if (isNaN(hourlyRate) || hourlyRate < 0) {
-      toast.error('Giá theo giờ phải là số không âm');
+      toast.error(t('room.errorPriceHourly'));
       return;
     }
 
@@ -233,7 +235,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
       status: editedStatus,
     });
     setIsEditing(false);
-    toast.success(`Đã cập nhật thông tin phòng ${room.number}`);
+    toast.success(`${t('room.updateSuccess')} ${room.number}`);
   };
 
   const handleCancelEdit = () => {
@@ -272,17 +274,17 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
           <DialogHeader className="pb-1 space-y-0">
             <DialogTitle className="text-lg font-bold">Phòng {room.number} - {room.type}</DialogTitle>
             <DialogDescription className="text-[10px]">
-              Quản lý thông tin phòng và check-in/check-out khách
+              {t('room.manageRoom')}
             </DialogDescription>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="grid w-full grid-cols-2 h-8">
               <TabsTrigger value="info" className="text-xs">
-                Thông tin
+                {t('room.info')}
               </TabsTrigger>
               <TabsTrigger value="checkin" disabled={!!room.guest} className="text-xs">
-                Check-in
+                {t('room.checkin')}
               </TabsTrigger>
             </TabsList>
 
@@ -296,7 +298,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <div className="flex items-center gap-2">
                         <User className="w-3 h-3 text-gray-600" />
                         <div className="flex-1">
-                          <p className="text-[10px] text-gray-600">Khách hàng</p>
+                          <p className="text-[10px] text-gray-600">{t('room.guest')}</p>
                           <p className="text-sm font-bold text-gray-800">{room.guest.name}</p>
                         </div>
                       </div>
@@ -305,7 +307,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                         <div className="flex items-center gap-2">
                           <Phone className="w-3 h-3 text-gray-600" />
                           <div className="flex-1">
-                            <p className="text-[10px] text-gray-600">Số điện thoại</p>
+                            <p className="text-[10px] text-gray-600">{t('room.phone')}</p>
                             <p className="text-xs font-semibold">{room.guest.phone}</p>
                           </div>
                         </div>
@@ -324,7 +326,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <div className="flex items-center gap-2">
                         <Clock className="w-3 h-3 text-gray-600" />
                         <div className="flex-1">
-                          <p className="text-[10px] text-gray-600">Check-out dự kiến</p>
+                          <p className="text-[10px] text-gray-600">{t('room.checkoutExpected')}</p>
                           <p className="text-[11px] font-semibold">{formatDate(room.guest.checkOutDate)}</p>
                         </div>
                       </div>
@@ -333,13 +335,13 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
 
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-[10px] text-gray-600">Loại thuê</p>
+                          <p className="text-[10px] text-gray-600">{t('room.rentalType')}</p>
                           <Badge variant="outline" className="text-[10px] mt-0.5 h-6 px-2 py-1">
-                            {room.guest.isHourly ? 'Theo giờ' : 'Theo ngày'}
+                            {room.guest.isHourly ? t('room.hourly') : t('room.daily')}
                           </Badge>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] text-gray-600">Tổng tiền phòng</p>
+                          <p className="text-[10px] text-gray-600">{t('room.totalAmount')}</p>
                           <p className="text-base font-bold text-green-600">
                             {formatCurrency(room.guest.totalAmount)}₫
                           </p>
@@ -348,7 +350,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
 
                       {room.guest.checkedInBy && (
                         <p className="text-[10px] text-gray-500 italic">
-                          Check-in bởi: {room.guest.checkedInBy}
+                          {t('room.checkedInBy')}: {room.guest.checkedInBy}
                         </p>
                       )}
                     </div>
@@ -360,7 +362,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                     className="w-full bg-red-600 hover:bg-red-700 text-xs h-9"
                   >
                     <LogOut className="w-3 h-3 mr-1.5" />
-                    Trả phòng
+                    {t('room.checkout')}
                   </Button>
                 </>
               ) : (
@@ -368,7 +370,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                   {/* Empty Room Info - Editable */}
                   <Card className={`${getRoomStatusColor()} p-3 border`}>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-gray-800">Thông tin phòng</h3>
+                      <h3 className="text-sm font-semibold text-gray-800">{t('room.roomInfo')}</h3>
                       {!isEditing ? (
                         <Button
                           size="sm"
@@ -377,7 +379,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                           className="h-6 px-2 text-xs"
                         >
                           <Edit2 className="w-3 h-3 mr-1" />
-                          Sửa
+                          {t('room.edit')}
                         </Button>
                       ) : (
                         <div className="flex gap-1">
@@ -406,7 +408,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <div className="flex items-center gap-2">
                         <DoorOpen className="w-4 h-4 text-gray-500" />
                         <div className="flex-1">
-                          <Label className="text-[10px] text-gray-600">Số phòng</Label>
+                          <Label className="text-[10px] text-gray-600">{t('room.roomNumber')}</Label>
                           <p className="text-sm font-bold text-gray-800">{room.number}</p>
                         </div>
                       </div>
@@ -418,7 +420,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                         <div className="space-y-1">
                           <Label className="text-[10px] text-gray-600 flex items-center gap-1">
                             <Bed className="w-3 h-3" />
-                            Loại phòng
+                            {t('room.roomType')}
                           </Label>
                           <Select value={editedRoomType} onValueChange={(value) => setEditedRoomType(value as RoomType)}>
                             <SelectTrigger className="text-xs h-8">
@@ -437,7 +439,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                         <div className="flex items-center gap-2">
                           <Bed className="w-4 h-4 text-gray-500" />
                           <div className="flex-1">
-                            <Label className="text-[10px] text-gray-600">Loại phòng</Label>
+                            <Label className="text-[10px] text-gray-600">{t('room.roomType')}</Label>
                             <p className="text-sm font-semibold text-gray-800">{room.type}</p>
                           </div>
                         </div>
@@ -447,8 +449,8 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4 text-gray-500" />
                         <div className="flex-1">
-                          <Label className="text-[10px] text-gray-600">Tầng</Label>
-                          <p className="text-sm font-semibold text-gray-800">Tầng {room.floor}</p>
+                          <Label className="text-[10px] text-gray-600">{t('room.floor')}</Label>
+                          <p className="text-sm font-semibold text-gray-800">{t('room.floor')} {room.floor}</p>
                         </div>
                       </div>
 
@@ -457,7 +459,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-gray-500" />
                           <div className="flex-1">
-                            <Label className="text-[10px] text-gray-600">Tòa nhà</Label>
+                            <Label className="text-[10px] text-gray-600">{t('room.building')}</Label>
                             <p className="text-sm font-semibold text-gray-800">
                               {hotel.buildings.find(b => b.id === room.buildingId)?.name || 'N/A'}
                             </p>
@@ -468,26 +470,26 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       {/* Status */}
                       {isEditing ? (
                         <div className="space-y-1">
-                          <Label className="text-[10px] text-gray-600">Trạng thái</Label>
+                          <Label className="text-[10px] text-gray-600">{t('room.status')}</Label>
                           <Select value={editedStatus} onValueChange={(value) => setEditedStatus(value as RoomStatus)}>
                             <SelectTrigger className="text-xs h-8">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="vacant-clean">Trống - Sạch</SelectItem>
-                              <SelectItem value="vacant-dirty">Trống - Cần dọn</SelectItem>
-                              <SelectItem value="out-of-order">Không sử dụng</SelectItem>
+                              <SelectItem value="vacant-clean">{t('room.statusVacantClean')}</SelectItem>
+                              <SelectItem value="vacant-dirty">{t('room.statusVacantDirty')}</SelectItem>
+                              <SelectItem value="out-of-order">{t('room.statusOutOfOrder')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <Label className="text-[10px] text-gray-600">Trạng thái</Label>
+                            <Label className="text-[10px] text-gray-600">{t('room.status')}</Label>
                             <Badge variant="outline" className="text-[10px] mt-0.5">
-                              {room.status === 'vacant-clean' ? 'Trống - Sạch' : 
-                               room.status === 'vacant-dirty' ? 'Trống - Cần dọn' : 
-                               room.status === 'out-of-order' ? 'Không sử dụng' : room.status}
+                              {room.status === 'vacant-clean' ? t('room.statusVacantClean') : 
+                               room.status === 'vacant-dirty' ? t('room.statusVacantDirty') : 
+                               room.status === 'out-of-order' ? t('room.statusOutOfOrder') : room.status}
                             </Badge>
                           </div>
                         </div>
@@ -500,7 +502,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                         <div className="space-y-1">
                           <Label className="text-[10px] text-gray-600 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            Giá theo giờ (₫/giờ)
+                            {t('room.hourlyPricePerHour')}
                           </Label>
                           <Input
                             type="number"
@@ -515,10 +517,10 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-700 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            Giá theo giờ
+                            {t('room.hourlyPrice')}
                           </span>
                         <span className="text-sm font-bold text-blue-600">
-                          {formatCurrency(room.hourlyRate || 0)}₫/giờ
+                          {formatCurrency(room.hourlyRate || 0)}₫/{t('room.hours').slice(0, -1)}
                         </span>
                       </div>
                       )}
@@ -528,7 +530,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                         <div className="space-y-1">
                           <Label className="text-[10px] text-gray-600 flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
-                            Giá theo ngày (₫/ngày)
+                            {t('room.dailyPricePerDay')}
                           </Label>
                           <Input
                             type="number"
@@ -543,10 +545,10 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-700 flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
-                            Giá theo ngày
+                            {t('room.dailyPrice')}
                           </span>
                         <span className="text-sm font-bold text-green-600">
-                          {formatCurrency(room.price)}₫/ngày
+                          {formatCurrency(room.price)}₫/{t('room.daily').toLowerCase()}
                         </span>
                       </div>
                       )}
@@ -559,7 +561,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       className="w-full bg-green-600 hover:bg-green-700 text-xs h-9"
                     >
                       <CheckCircle2 className="w-3 h-3 mr-1.5" />
-                      Đánh dấu đã dọn
+                      {t('room.markClean')}
                     </Button>
                   )}
 
@@ -568,7 +570,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       onClick={() => setActiveTab('checkin')}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs h-9"
                     >
-                      Check-in ngay
+                      {t('room.checkinNow')}
                     </Button>
                     
                     <Button 
@@ -588,7 +590,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
               <form onSubmit={handleCheckIn} className="space-y-2">
                 {/* Rental Type */}
                 <Card className="p-2">
-                  <Label className="text-xs font-semibold mb-1.5 block">Loại thuê</Label>
+                  <Label className="text-xs font-semibold mb-1.5 block">{t('room.rentalTypeLabel')}</Label>
                   <div className="grid grid-cols-2 gap-1.5">
                     <Button
                       type="button"
@@ -597,7 +599,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       onClick={() => setRentalType('hourly')}
                     >
                       <Clock className="w-3 h-3 mr-1" />
-                      Theo giờ
+                      {t('room.hourly')}
                     </Button>
                     <Button
                       type="button"
@@ -606,7 +608,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       onClick={() => setRentalType('daily')}
                     >
                       <Calendar className="w-3 h-3 mr-1" />
-                      Theo ngày
+                      {t('room.daily')}
                     </Button>
                   </div>
                 </Card>
@@ -615,13 +617,13 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                 <Card className="p-2 space-y-2">
                   <div>
                     <Label htmlFor="guestName" className="text-xs font-semibold mb-0.5 block">
-                      Tên khách *
+                      {t('room.guestName')} *
                     </Label>
                     <Input
                       id="guestName"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Nhập tên khách hàng"
+                      placeholder={t('room.guestNamePlaceholder')}
                       className="text-xs h-8"
                       required
                     />
@@ -629,7 +631,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
 
                   <div>
                     <Label htmlFor="guestPhone" className="text-xs font-semibold mb-0.5 block">
-                      Số điện thoại
+                      {t('room.phoneLabel')}
                     </Label>
                     <Input
                       id="guestPhone"
@@ -646,7 +648,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                 {rentalType === 'hourly' ? (
                   <Card className="p-2">
                     <Label htmlFor="hours" className="text-xs font-semibold mb-0.5 block">
-                      Số giờ thuê
+                      {t('room.hoursRental')}
                     </Label>
                     <Select value={hours} onValueChange={setHours}>
                       <SelectTrigger className="text-xs h-8 mt-1">
@@ -655,7 +657,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                       <SelectContent>
                         {[...Array(24)].map((_, i) => (
                           <SelectItem key={i + 1} value={(i + 1).toString()} className="text-xs">
-                            {i + 1} giờ - {formatCurrency((room.hourlyRate || 0) * (i + 1))}₫
+                            {i + 1} {t('room.hours')} - {formatCurrency((room.hourlyRate || 0) * (i + 1))}₫
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -665,7 +667,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                   <Card className="p-2 space-y-2">
                     <div>
                       <Label htmlFor="checkInDate" className="text-xs font-semibold mb-0.5 block">
-                        Ngày check-in
+                        {t('room.checkinDate')}
                       </Label>
                       <Input
                         id="checkInDate"
@@ -679,7 +681,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
 
                     <div>
                       <Label htmlFor="checkOutDate" className="text-xs font-semibold mb-0.5 block">
-                        Ngày check-out dự kiến
+                        {t('room.checkoutDateExpected')}
                       </Label>
                       <Input
                         id="checkOutDate"
@@ -696,7 +698,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                 <div className="bg-blue-50 p-2 rounded">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-gray-700">
-                      {rentalType === 'hourly' ? `${hours} giờ` : 'Theo ngày'}
+                      {rentalType === 'hourly' ? `${hours} ${t('room.hours')}` : t('room.daily')}
                     </span>
                     <span className="text-xs font-semibold">
                       {formatCurrency(calculateTotal())}₫
@@ -704,7 +706,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                   </div>
                   <Separator className="my-1" />
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-800">Tổng cộng</span>
+                    <span className="text-sm font-bold text-gray-800">{t('room.total')}</span>
                     <span className="text-base font-bold text-blue-600">
                       {formatCurrency(calculateTotal())}₫
                     </span>
@@ -713,11 +715,11 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
 
                 <div className="flex gap-1.5 pt-1">
                   <Button type="button" variant="outline" onClick={onClose} className="flex-1 text-xs h-9">
-                    Hủy
+                    {t('delete.cancel')}
                   </Button>
                   <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-xs h-9">
                     <CheckCircle2 className="w-3 h-3 mr-1.5" />
-                    Xác nhận check-in
+                    {t('room.confirmCheckin')}
                   </Button>
                 </div>
               </form>

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InvoicePDF } from './InvoicePDF';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GuestHousePaymentDialogProps {
   room: Room;
@@ -45,6 +46,7 @@ export function GuestHousePaymentDialog({
   onComplete 
 }: GuestHousePaymentDialogProps) {
   const { hotel } = useApp();
+  const { t } = useLanguage();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [step, setStep] = useState<'select' | 'receipt'>('select');
   
@@ -157,7 +159,7 @@ export function GuestHousePaymentDialog({
     // If invoice requested, save to localStorage
     if (requestInvoice) {
       if (!invoiceCustomerName || !invoiceEmail) {
-        toast.error('Vui lòng nhập đầy đủ thông tin hóa đơn');
+        toast.error(t('payment.errorInvoiceInfo'));
         return;
       }
 
@@ -177,12 +179,12 @@ export function GuestHousePaymentDialog({
           },
           items: [
             {
-              description: `Dịch vụ phòng ${room.number} - ${room.type}`,
+              description: `${t('payment.serviceDescription')} ${room.number} - ${room.type}`,
               quantity: room.guest?.isHourly 
                 ? Math.ceil((new Date(room.guest.checkOutDate || '').getTime() - new Date(room.guest.checkInDate || '').getTime()) / (1000 * 60 * 60))
                 : Math.ceil((new Date(room.guest.checkOutDate || '').getTime() - new Date(room.guest.checkInDate || '').getTime()) / (1000 * 60 * 60 * 24)),
               unitPrice: room.guest?.isHourly ? (room.hourlyRate || 0) : room.price,
-              unit: room.guest?.isHourly ? 'giờ' : 'ngày',
+              unit: room.guest?.isHourly ? t('room.hours').slice(0, -1) : t('room.daily').toLowerCase(),
               amount: getRoomAmount()
             }
           ],
@@ -199,11 +201,11 @@ export function GuestHousePaymentDialog({
         existingInvoices.push(invoiceData);
         localStorage.setItem('invoices', JSON.stringify(existingInvoices));
 
-        toast.success(`✅ Đã tạo hóa đơn thành công! Số HĐ: ${invoiceId}`);
+        toast.success(`✅ ${t('payment.invoiceSuccess')}: ${invoiceId}`);
         console.log('Invoice saved to localStorage:', invoiceData);
       } catch (error) {
         console.error('Failed to save invoice:', error);
-        toast.error('Lỗi khi lưu hóa đơn');
+        toast.error(t('payment.invoiceError'));
         setCreatingInvoice(false);
         return;
       } finally {
@@ -255,15 +257,15 @@ export function GuestHousePaymentDialog({
   const getPaymentMethodLabel = (method: PaymentMethod) => {
     switch (method) {
       case 'cash':
-        return 'Tiền mặt';
+        return t('payment.cash');
       case 'bank-transfer':
-        return 'Chuyển khoản';
+        return t('payment.bankTransfer');
       case 'card':
-        return 'Thẻ';
+        return t('payment.card');
       case 'momo':
-        return 'MoMo';
+        return t('payment.momo');
       case 'vnpay':
-        return 'VNPay';
+        return t('payment.vnpay');
       default:
         return method;
     }
@@ -275,9 +277,9 @@ export function GuestHousePaymentDialog({
         {step === 'select' ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">Chọn phương thức thanh toán</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">{t('payment.selectMethod')}</DialogTitle>
               <DialogDescription>
-                Chọn cách thức thanh toán cho khách hàng
+                {t('payment.selectMethodDescription')}
               </DialogDescription>
             </DialogHeader>
 
@@ -290,7 +292,7 @@ export function GuestHousePaymentDialog({
                     <p className="text-lg font-semibold">{room.guest?.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Tổng tiền</p>
+                    <p className="text-sm text-gray-600">{t('payment.totalAmount')}</p>
                     <p className="text-3xl font-bold text-blue-600">{formatCurrency(amount)}₫</p>
                   </div>
                 </div>
@@ -299,7 +301,7 @@ export function GuestHousePaymentDialog({
               {/* Payment Method Selection */}
               <div className="space-y-2">
                 <label className="text-base font-semibold text-gray-700">
-                  Phương thức thanh toán
+                  {t('payment.method')}
                 </label>
                 <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
                   <SelectTrigger className="text-base py-6">
@@ -312,33 +314,33 @@ export function GuestHousePaymentDialog({
                     <SelectItem value="cash" className="text-base">
                       <div className="flex items-center gap-2">
                         <Wallet className="w-4 h-4" />
-                        Tiền mặt
+                        {t('payment.cash')}
                       </div>
                     </SelectItem>
                     {hotel?.bankAccount && (
                       <SelectItem value="bank-transfer" className="text-base">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4" />
-                          Chuyển khoản
+                          {t('payment.bankTransfer')}
                         </div>
                       </SelectItem>
                     )}
                     <SelectItem value="momo" className="text-base">
                       <div className="flex items-center gap-2">
                         <Smartphone className="w-4 h-4" />
-                        MoMo
+                        {t('payment.momo')}
                       </div>
                     </SelectItem>
                     <SelectItem value="vnpay" className="text-base">
                       <div className="flex items-center gap-2">
                         <Smartphone className="w-4 h-4" />
-                        VNPay
+                        {t('payment.vnpay')}
                       </div>
                     </SelectItem>
                     <SelectItem value="card" className="text-base">
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4" />
-                        Thẻ
+                        {t('payment.card')}
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -352,14 +354,14 @@ export function GuestHousePaymentDialog({
                   onClick={onClose}
                   className="flex-1 text-base py-6"
                 >
-                  Hủy
+                  {t('delete.cancel')}
                 </Button>
                 <Button 
                   onClick={handleViewReceipt}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-base py-6"
                 >
                   <Receipt className="w-5 h-5 mr-2" />
-                  Xem biên lai
+                  {t('payment.viewReceipt')}
                 </Button>
               </div>
             </div>
@@ -367,9 +369,9 @@ export function GuestHousePaymentDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">Biên lai thanh toán</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
               <DialogDescription>
-                Chi tiết hóa đơn và mã QR thanh toán
+                {t('payment.receiptDescription')}
               </DialogDescription>
             </DialogHeader>
 
@@ -379,7 +381,7 @@ export function GuestHousePaymentDialog({
                 {loadingSettings ? (
                   <div className="flex items-center justify-center gap-2 py-4">
                     <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                    <span className="text-sm text-gray-500">Đang tải thông tin...</span>
+                    <span className="text-sm text-gray-500">{t('payment.loadingInfo')}</span>
                   </div>
                 ) : (
                   <>
@@ -388,17 +390,17 @@ export function GuestHousePaymentDialog({
                     </h2>
                     {invoiceSettings?.address && (
                       <p className="text-xs text-gray-600 mt-1">
-                        Địa chỉ: {invoiceSettings.address}
+                        {t('payment.address')}: {invoiceSettings.address}
                       </p>
                     )}
                     {invoiceSettings?.phone && (
                       <p className="text-xs text-gray-600">
-                        SĐT: {invoiceSettings.phone}
+                        {t('payment.phoneLabel')}: {invoiceSettings.phone}
                       </p>
                     )}
                     {invoiceSettings?.taxCode && (
                       <p className="text-xs text-gray-600">
-                        MST: {invoiceSettings.taxCode}
+                        {t('payment.taxCode')}: {invoiceSettings.taxCode}
                       </p>
                     )}
                     {invoiceSettings?.email && (
@@ -409,7 +411,7 @@ export function GuestHousePaymentDialog({
                   </>
                 )}
                 <Separator className="my-2" />
-                <p className="text-sm text-gray-600 font-semibold mt-2">BIÊN LAI THANH TOÁN</p>
+                <p className="text-sm text-gray-600 font-semibold mt-2">{t('payment.receiptHeader')}</p>
                 <p className="text-xs text-gray-500">{formatDate()}</p>
               </div>
 
@@ -417,12 +419,12 @@ export function GuestHousePaymentDialog({
               <Card className="p-4 bg-gray-50">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Khách hàng:</span>
+                    <span className="text-gray-600">{t('payment.guest')}:</span>
                     <span className="font-semibold">{room.guest?.name}</span>
                   </div>
                   {room.guest?.phone && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Số điện thoại:</span>
+                      <span className="text-gray-600">{t('payment.phone')}:</span>
                       <span className="font-semibold">{room.guest.phone}</span>
                     </div>
                   )}
@@ -431,9 +433,9 @@ export function GuestHousePaymentDialog({
                     <span className="font-semibold">{room.number}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Loại thuê:</span>
+                    <span className="text-gray-600">{t('payment.rentalType')}:</span>
                     <span className="font-semibold">
-                      {room.guest?.isHourly ? 'Theo giờ' : 'Theo ngày'}
+                      {room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -449,7 +451,7 @@ export function GuestHousePaymentDialog({
 
               {/* Itemized Charges */}
               <Card className="p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">Chi tiết thanh toán</h3>
+                <h3 className="font-semibold text-gray-800 mb-3">{t('payment.paymentDetails')}</h3>
                 
                 <div className="space-y-2 text-sm">
                   {(() => {
@@ -462,12 +464,12 @@ export function GuestHousePaymentDialog({
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="font-medium text-gray-700">
-                              Tiền phòng {vatRate > 0 && '(chưa VAT)'}
+                              {t('common.room')} {vatRate > 0 && `(${t('payment.beforeVAT')})`}
                             </p>
                             <p className="text-xs text-gray-500">
                               {room.guest?.isHourly 
-                                ? `${formatCurrency(room.hourlyRate || 0)}₫/giờ`
-                                : `${formatCurrency(room.price)}₫/ngày`
+                                ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
+                                : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
                               }
                             </p>
                           </div>
@@ -490,7 +492,7 @@ export function GuestHousePaymentDialog({
 
                         {/* Total */}
                         <div className="flex justify-between items-center pt-2">
-                          <span className="text-lg font-bold text-gray-800">Tổng cộng</span>
+                          <span className="text-lg font-bold text-gray-800">{t('room.total')}</span>
                           <span className="text-2xl font-bold text-blue-600">
                             {formatCurrency(vatCalc.totalAmount)}₫
                           </span>
@@ -498,7 +500,7 @@ export function GuestHousePaymentDialog({
 
                         {/* Payment Method */}
                         <div className="flex justify-between items-center pt-2 border-t">
-                          <span className="text-sm text-gray-600">Phương thức:</span>
+                          <span className="text-sm text-gray-600">{t('payment.paymentMethodLabel')}:</span>
                           <span className="font-semibold flex items-center gap-2">
                             {getPaymentMethodIcon(paymentMethod)}
                             {getPaymentMethodLabel(paymentMethod)}
@@ -514,7 +516,7 @@ export function GuestHousePaymentDialog({
               {paymentMethod === 'bank-transfer' && hotel?.bankAccount && (
                 <Card className="p-4">
                   <div className="flex flex-col items-center space-y-3">
-                    <p className="font-semibold text-gray-800">Quét mã QR để thanh toán</p>
+                    <p className="font-semibold text-gray-800">{t('payment.scanQR')}</p>
                     <div className="bg-white p-3 rounded-lg border">
                       <img
                         src={generateQRContent()}
@@ -524,20 +526,20 @@ export function GuestHousePaymentDialog({
                     </div>
                     <div className="w-full bg-gray-50 p-3 rounded-lg space-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Ngân hàng:</span>
+                        <span className="text-gray-600">{t('payment.bank')}:</span>
                         <span className="font-semibold">{hotel.bankAccount.bankName}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Số TK:</span>
+                        <span className="text-gray-600">{t('payment.accountNumber')}:</span>
                         <span className="font-semibold">{hotel.bankAccount.accountNumber}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Chủ TK:</span>
+                        <span className="text-gray-600">{t('payment.accountHolder')}:</span>
                         <span className="font-semibold">{hotel.bankAccount.accountHolder}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Nội dung:</span>
-                        <span className="font-semibold">Phong {room.number}</span>
+                        <span className="text-gray-600">{t('payment.content')}:</span>
+                        <span className="font-semibold">{t('common.room')} {room.number}</span>
                       </div>
                     </div>
                   </div>
@@ -561,7 +563,7 @@ export function GuestHousePaymentDialog({
                   />
                   <Label htmlFor="request-invoice" className="flex items-center gap-2 cursor-pointer">
                     <FileText className="w-5 h-5 text-blue-600" />
-                    <span className="font-semibold text-blue-900">Xuất hóa đơn điện tử</span>
+                    <span className="font-semibold text-blue-900">{t('payment.requestInvoice')}</span>
                   </Label>
                 </div>
 
@@ -569,47 +571,47 @@ export function GuestHousePaymentDialog({
                   <div className="space-y-3 pt-2 border-t border-blue-200">
                     <div>
                       <Label htmlFor="invoice-customer-name" className="text-sm text-gray-700">
-                        Tên công ty/cá nhân *
+                        {t('payment.invoiceCustomerName')} *
                       </Label>
                       <Input
                         id="invoice-customer-name"
                         value={invoiceCustomerName}
                         onChange={(e) => setInvoiceCustomerName(e.target.value)}
-                        placeholder="VD: Công ty ABC hoặc Nguyễn Văn A"
+                        placeholder={t('payment.invoiceCustomerNamePlaceholder')}
                         className="mt-1"
                       />
                     </div>
 
                     <div>
                       <Label htmlFor="invoice-tax-code" className="text-sm text-gray-700">
-                        Mã số thuế (nếu là doanh nghiệp)
+                        {t('payment.invoiceTaxCode')}
                       </Label>
                       <Input
                         id="invoice-tax-code"
                         value={invoiceTaxCode}
                         onChange={(e) => setInvoiceTaxCode(e.target.value)}
-                        placeholder="VD: 0123456789"
+                        placeholder={t('payment.invoiceTaxCodePlaceholder')}
                         className="mt-1"
                       />
                     </div>
 
                     <div>
                       <Label htmlFor="invoice-email" className="text-sm text-gray-700">
-                        Email nhận hóa đơn *
+                        {t('payment.invoiceEmail')} *
                       </Label>
                       <Input
                         id="invoice-email"
                         type="email"
                         value={invoiceEmail}
                         onChange={(e) => setInvoiceEmail(e.target.value)}
-                        placeholder="VD: khachhang@email.com"
+                        placeholder={t('payment.invoiceEmailPlaceholder')}
                         className="mt-1"
                       />
                     </div>
 
                     <p className="text-xs text-gray-600 flex items-start gap-1">
                       <Mail className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                      Hóa đơn điện tử sẽ được gửi đến email này ngay sau khi thanh toán
+                      {t('payment.invoiceEmailInfo')}
                     </p>
                   </div>
                 )}
@@ -624,7 +626,7 @@ export function GuestHousePaymentDialog({
                   disabled={creatingInvoice}
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" />
-                  Quay lại
+                  {t('payment.back')}
                 </Button>
                 <Button 
                   variant="outline"
@@ -642,19 +644,19 @@ export function GuestHousePaymentDialog({
                   {creatingInvoice ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Đang xử lý...
+                      {t('payment.processing')}
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5 mr-2" />
-                      Xác nhận thanh toán
+                      {t('payment.confirmPayment')}
                     </>
                   )}
                 </Button>
               </div>
 
               <p className="text-center text-xs text-gray-500 pt-2">
-                Cảm ơn quý khách! Hẹn gặp lại! 🙏
+                {t('payment.thankYou')}
               </p>
             </div>
           </>

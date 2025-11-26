@@ -8,6 +8,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Building, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AddBuildingDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface AddBuildingDialogProps {
 
 export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
   const { hotel, addBuilding } = useApp();
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -23,7 +25,7 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
     e.preventDefault();
 
     if (!name.trim()) {
-      toast.error('Vui lòng nhập tên khu trọ');
+      toast.error(t('add.errorBuildingNameBoarding'));
       return;
     }
 
@@ -35,7 +37,7 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
     };
 
     addBuilding(newBuilding);
-    toast.success(`Đã thêm khu trọ "${name}"`);
+    toast.success(`${t('add.buildingAddedBoarding')} "${name}"`);
     
     // Reset form
     setName('');
@@ -55,10 +57,10 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Building className="w-6 h-6 text-blue-600" />
-            Thêm Khu Trọ Mới
+            {t('add.buildingTitleBoarding')}
           </DialogTitle>
           <DialogDescription>
-            Tạo khu trọ mới để quản lý phòng riêng biệt
+            {t('add.buildingDescriptionBoarding')}
           </DialogDescription>
         </DialogHeader>
 
@@ -67,32 +69,32 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
           <div className="space-y-2">
             <Label htmlFor="building-name" className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              Tên Khu Trọ <span className="text-red-500">*</span>
+              {t('add.buildingNameBoarding')} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="building-name"
-              placeholder="VD: Khu A, Dãy 1, Nhà số 1..."
+              placeholder={t('add.buildingNameBoardingPlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="text-lg"
               autoFocus
             />
             <p className="text-xs text-gray-500">
-              Tên ngắn gọn, dễ nhớ để phân biệt các khu trọ
+              {t('add.buildingNameBoardingHint')}
             </p>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="building-description">Mô Tả (Tùy chọn)</Label>
+            <Label htmlFor="building-description">{t('add.buildingDescriptionLabel')}</Label>
             <Input
               id="building-description"
-              placeholder="VD: Khu phía sau, gần cổng chính..."
+              placeholder={t('add.buildingDescriptionPlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
             <p className="text-xs text-gray-500">
-              Ghi chú để dễ nhận biết vị trí, đặc điểm
+              {t('add.buildingDescriptionHint')}
             </p>
           </div>
 
@@ -104,14 +106,14 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
               onClick={handleClose}
               className="flex-1"
             >
-              Hủy
+              {t('delete.cancel')}
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >
               <Building className="w-4 h-4 mr-2" />
-              Tạo Khu Trọ
+              {t('add.createBuilding')}
             </Button>
           </div>
         </form>

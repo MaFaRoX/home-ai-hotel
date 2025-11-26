@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Room } from '../types';
-import { Menu, Clock, DollarSign, Plus, DoorOpen, Trash2, Layers, Building2, ChevronDown, ChevronUp, HelpCircle, X } from 'lucide-react';
+import { Menu, Clock, DollarSign, Plus, DoorOpen, Trash2, Layers, Building2, ChevronDown, ChevronUp, HelpCircle, X, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -14,6 +14,14 @@ import { AddRoomDialog } from './AddRoomDialog';
 import { AddFloorDialog } from './AddFloorDialog';
 import { AddBuildingDialog } from './AddBuildingDialog';
 import { HelpDialog } from './HelpDialog';
+import { useLanguage } from '../contexts/LanguageContext';
+import { languages } from '../locales';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -28,6 +36,7 @@ import { toast } from 'sonner';
 
 export function GuestHouseLiveGrid() {
   const { user, hotel, rooms, deleteRoom, deleteFloor, deleteBuilding } = useApp();
+  const { language, setLanguage, t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [addRoomOpen, setAddRoomOpen] = useState(false);
@@ -96,14 +105,14 @@ export function GuestHouseLiveGrid() {
   const getRoomStatusText = (room: Room) => {
     if (room.guest) {
       return { 
-        text: room.guest.isHourly ? 'Giờ' : 'Ngày', 
+        text: room.guest.isHourly ? t('room.hourly') : t('room.daily'), 
         color: room.guest.isHourly ? 'text-blue-600' : 'text-green-600' 
       };
     }
     if (room.status === 'vacant-dirty') {
-      return { text: 'Dọn', color: 'text-yellow-600' };
+      return { text: t('room.clean'), color: 'text-yellow-600' };
     }
-    return { text: 'Trống', color: 'text-gray-600' };
+    return { text: t('room.vacant'), color: 'text-gray-600' };
   };
 
   const formatCurrency = (amount: number) => {
@@ -113,12 +122,12 @@ export function GuestHouseLiveGrid() {
   const handleLongPressStart = (room: Room) => {
     const timer = setTimeout(() => {
       if (room.guest) {
-        toast.error('Không thể xóa phòng đang có khách');
+        toast.error(t('error.cannotDeleteOccupiedRoom'));
       } else {
         setDeleteConfirm({ 
           type: 'room',
           id: room.id, 
-          name: `Phòng ${room.number}` 
+          name: `${t('common.room')} ${room.number}` 
         });
       }
     }, 800); // 800ms long press
@@ -216,17 +225,41 @@ export function GuestHouseLiveGrid() {
                 <Menu className="w-8 h-8" />
               </Button>
               <div>
-                <p className="text-base font-semibold text-white/90">Quản lý</p>
+                <p className="text-base font-semibold text-white/90">{t('dashboard.manage')}</p>
                 <p className="text-2xl text-white font-bold">{user?.name}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:bg-white/20 !w-[54px] !h-[54px] p-0"
+                    title={t('header.language')}
+                  >
+                    <Globe className="!w-[40px] !h-[40px]" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {Object.values(languages).map((lang) => (
+                    <DropdownMenuItem
+                      key={lang.code}
+                      onClick={() => setLanguage(lang.code)}
+                      className={language === lang.code ? 'bg-accent' : ''}
+                    >
+                      <span className="mr-2">{lang.flag}</span>
+                      {lang.name}
+                      {language === lang.code && <span className="ml-auto">✓</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="ghost"
                 onClick={() => setHelpDialogOpen(true)}
                 className="text-white hover:bg-white/20 !w-[54px] !h-[54px] p-0"
-                title="Hướng dẫn sử dụng"
+                title={t('dashboard.helpTitle')}
               >
                 <HelpCircle className="!w-[40px] !h-[40px]" />
               </Button>
@@ -241,9 +274,9 @@ export function GuestHouseLiveGrid() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg text-gray-600">Tổng phòng</p>
+                  <p className="text-lg text-gray-600">{t('dashboard.totalRooms')}</p>
                   <p className="text-4xl font-bold text-blue-600">{totalRooms}</p>
-                  {roomFilter === 'all' && <p className="text-xs text-blue-600 mt-1">✓ Đang hiển thị tất cả</p>}
+                  {roomFilter === 'all' && <p className="text-xs text-blue-600 mt-1">✓ {t('dashboard.showingAll')}</p>}
                 </div>
                 <DoorOpen className="w-12 h-12 text-blue-400" />
               </div>
@@ -255,10 +288,10 @@ export function GuestHouseLiveGrid() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg text-gray-600">Đang thuê</p>
+                  <p className="text-lg text-gray-600">{t('dashboard.occupied')}</p>
                   <p className="text-4xl font-bold text-green-600">{occupiedRooms}</p>
-                  <p className="text-sm text-gray-500">Giờ: {hourlyRooms} | Ngày: {dailyRooms}</p>
-                  {roomFilter === 'occupied' && <p className="text-xs text-green-600 mt-1">✓ Đang lọc phòng có khách</p>}
+                  <p className="text-sm text-gray-500">{t('dashboard.hours')}: {hourlyRooms} | {t('dashboard.days')}: {dailyRooms}</p>
+                  {roomFilter === 'occupied' && <p className="text-xs text-green-600 mt-1">✓ {t('dashboard.filteringOccupied')}</p>}
                 </div>
               </div>
             </Card>
@@ -269,9 +302,9 @@ export function GuestHouseLiveGrid() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg text-gray-600">Còn trống</p>
+                  <p className="text-lg text-gray-600">{t('dashboard.vacant')}</p>
                   <p className="text-4xl font-bold text-gray-600">{vacantRooms}</p>
-                  {roomFilter === 'vacant' && <p className="text-xs text-gray-600 mt-1">✓ Đang lọc phòng trống</p>}
+                  {roomFilter === 'vacant' && <p className="text-xs text-gray-600 mt-1">✓ {t('dashboard.filteringVacant')}</p>}
                 </div>
               </div>
             </Card>
@@ -282,9 +315,9 @@ export function GuestHouseLiveGrid() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg text-gray-600">Doanh thu hôm nay</p>
+                  <p className="text-lg text-gray-600">{t('dashboard.revenueToday')}</p>
                   <p className="text-3xl font-bold text-blue-600">{formatCurrency(todayRevenue)}₫</p>
-                  <p className="text-xs text-gray-500 mt-1">👆 Nhấn để xem chi tiết</p>
+                  <p className="text-xs text-gray-500 mt-1">👆 {t('dashboard.clickToViewDetails')}</p>
                 </div>
                 <DollarSign className="w-12 h-12 text-green-400" />
               </div>
@@ -306,10 +339,10 @@ export function GuestHouseLiveGrid() {
                 .filter(buildingId => !hotel?.buildings?.some(b => b.id === buildingId))
                 .map((buildingId, index) => ({
                   id: buildingId,
-                  name: buildingId === 'default' ? 'Mặc định' : 
-                        buildingId === 'building-1' ? 'Tòa chính' : 
-                        buildingId === 'building-2' ? 'Tòa B' : 
-                        buildingId.replace('building-', 'Tòa '),
+                  name: buildingId === 'default' ? t('building.default') : 
+                        buildingId === 'building-1' ? t('building.main') : 
+                        buildingId === 'building-2' ? `${t('building.building')} B` : 
+                        buildingId.replace('building-', `${t('building.building')} `),
                   description: '',
                   order: (hotel?.buildings?.length || 0) + index + 1
                 }))
@@ -355,7 +388,7 @@ export function GuestHouseLiveGrid() {
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                          {totalBuildingRooms} phòng
+                          {totalBuildingRooms} {t('building.rooms')}
                         </Badge>
                         
                         {/* Delete Building Button */}
@@ -366,7 +399,7 @@ export function GuestHouseLiveGrid() {
                             e.stopPropagation();
                             const hasRooms = rooms.some(r => r.buildingId === building.id);
                             if (hasRooms) {
-                              toast.error('Không thể xóa tòa nhà đang có phòng. Vui lòng xóa hoặc chuyển phòng sang tòa khác trước.');
+                              toast.error(t('error.cannotDeleteBuildingWithRooms'));
                               return;
                             }
                             setDeleteConfirm({ 
@@ -377,7 +410,7 @@ export function GuestHouseLiveGrid() {
                             });
                           }}
                           className="text-white hover:text-red-200 hover:bg-white/20 h-8 w-8 p-0"
-                          title="Xóa tòa nhà"
+                          title={t('building.deleteTitle')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -420,21 +453,21 @@ export function GuestHouseLiveGrid() {
                                 onClick={() => toggleFloor(floorKey)}
                               >
                                 <Layers className="w-4 h-4 text-gray-600" />
-                                <h3 className="text-gray-900 font-medium">Tầng {floor}</h3>
+                                <h3 className="text-gray-900 font-medium">{t('floor.floor')} {floor}</h3>
                                 <Badge variant="outline" className="text-xs">
-                                  {floorRooms.length} phòng
+                                  {floorRooms.length} {t('building.rooms')}
                                 </Badge>
                               </div>
                               
                               <div className="flex items-center gap-2">
                                 {occupiedCount > 0 && (
                                   <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">
-                                    {occupiedCount} có khách
+                                    {occupiedCount} {t('floor.occupiedCount')}
                                   </Badge>
                                 )}
                                 {vacantCount > 0 && (
                                   <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-xs">
-                                    {vacantCount} trống
+                                    {vacantCount} {t('floor.vacantCount')}
                                   </Badge>
                                 )}
                                 
@@ -446,19 +479,19 @@ export function GuestHouseLiveGrid() {
                                     e.stopPropagation();
                                     const hasOccupiedRooms = floorRooms.some(r => r.guest);
                                     if (hasOccupiedRooms) {
-                                      toast.error('Không thể xóa tầng đang có khách. Vui lòng trả phòng trước.');
+                                      toast.error(t('error.cannotDeleteFloorWithGuests'));
                                       return;
                                     }
                                     setDeleteConfirm({ 
                                       type: 'floor', 
                                       id: floorKey,
-                                      name: `Tầng ${floor}`,
+                                      name: `${t('floor.floor')} ${floor}`,
                                       buildingId: building.id,
                                       floor: floor
                                     });
                                   }}
                                   className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
-                                  title="Xóa tầng"
+                                  title={t('floor.deleteTitle')}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -506,17 +539,17 @@ export function GuestHouseLiveGrid() {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           if (room.guest) {
-                                            toast.error('Không thể xóa phòng đang có khách. Vui lòng trả phòng trước.');
+                                            toast.error(t('error.cannotDeleteOccupiedRoom'));
                                             return;
                                           }
                                           setDeleteConfirm({ 
                                             type: 'room', 
                                             id: room.id, 
-                                            name: `Phòng ${room.number}` 
+                                            name: `${t('common.room')} ${room.number}` 
                                           });
                                         }}
                                         className="absolute top-1 right-1 h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
-                                        title="Xóa phòng"
+                                        title={t('room.deleteTitle')}
                                       >
                                         <X className="w-3 h-3" />
                                       </Button>
@@ -531,8 +564,8 @@ export function GuestHouseLiveGrid() {
                                             <p className="font-semibold text-white truncate">{room.guest.name}</p>
                                             <p className="text-xs text-white/90">
                                               {room.guest.isHourly 
-                                                ? `${formatCurrency(room.hourlyRate || 0)}₫/giờ`
-                                                : `${formatCurrency(room.price)}₫/ngày`
+                                                ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hourly').toLowerCase()}`
+                                                : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
                                               }
                                             </p>
                                           </div>
@@ -541,10 +574,10 @@ export function GuestHouseLiveGrid() {
                                         {!room.guest && (
                                           <div className="text-sm space-y-1">
                                             <p className="text-xs text-gray-800">
-                                              Giờ: {formatCurrency(room.hourlyRate || 0)}₫
+                                              {t('room.hourlyRate')}: {formatCurrency(room.hourlyRate || 0)}₫
                                             </p>
                                             <p className="text-xs text-gray-800">
-                                              Ngày: {formatCurrency(room.price)}₫
+                                              {t('room.dailyRate')}: {formatCurrency(room.price)}₫
                                             </p>
                                           </div>
                                         )}
@@ -560,8 +593,8 @@ export function GuestHouseLiveGrid() {
                       ) : (
                         <div className="bg-gray-50 rounded-lg p-8 text-center border border-gray-200">
                           <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                          <p className="text-gray-500 font-medium">Chưa có phòng nào</p>
-                          <p className="text-sm text-gray-400 mt-1">Thêm tầng và phòng để bắt đầu</p>
+                          <p className="text-gray-500 font-medium">{t('empty.noRooms')}</p>
+                          <p className="text-sm text-gray-400 mt-1">{t('empty.addFloorAndRooms')}</p>
                         </div>
                       )}
                     </div>
@@ -591,21 +624,21 @@ export function GuestHouseLiveGrid() {
                       onClick={() => toggleFloor(floorKey)}
                     >
                       <Layers className="w-4 h-4 text-gray-600" />
-                      <h3 className="text-gray-900 font-medium">Tầng {floor}</h3>
+                      <h3 className="text-gray-900 font-medium">{t('floor.floor')} {floor}</h3>
                       <Badge variant="outline" className="text-xs">
-                        {floorRooms.length} phòng
+                        {floorRooms.length} {t('building.rooms')}
                       </Badge>
                     </div>
                     
                     <div className="flex items-center gap-2">
                       {occupiedCount > 0 && (
                         <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">
-                          {occupiedCount} có khách
+                          {occupiedCount} {t('floor.occupiedCount')}
                         </Badge>
                       )}
                       {vacantCount > 0 && (
                         <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-xs">
-                          {vacantCount} trống
+                          {vacantCount} {t('floor.vacantCount')}
                         </Badge>
                       )}
                       
@@ -617,19 +650,19 @@ export function GuestHouseLiveGrid() {
                           e.stopPropagation();
                           const hasOccupiedRooms = floorRooms.some(r => r.guest);
                           if (hasOccupiedRooms) {
-                            toast.error('Không thể xóa tầng đang có khách. Vui lòng trả phòng trước.');
+                            toast.error(t('error.cannotDeleteFloorWithGuests'));
                             return;
                           }
                           setDeleteConfirm({ 
                             type: 'floor', 
                             id: floorKey,
-                            name: `Tầng ${floor}`,
+                            name: `${t('floor.floor')} ${floor}`,
                             buildingId: undefined,
                             floor: floor
                           });
                         }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
-                        title="Xóa tầng"
+                        title={t('floor.deleteTitle')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -677,17 +710,17 @@ export function GuestHouseLiveGrid() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (room.guest) {
-                                  toast.error('Không thể xóa phòng đang có khách. Vui lòng trả phòng trước.');
+                                  toast.error(t('error.cannotDeleteOccupiedRoom'));
                                   return;
                                 }
                                 setDeleteConfirm({ 
                                   type: 'room', 
                                   id: room.id, 
-                                  name: `Phòng ${room.number}` 
+                                  name: `${t('common.room')} ${room.number}` 
                                 });
                               }}
                               className="absolute top-1 right-1 h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50 z-10"
-                              title="Xóa phòng"
+                              title={t('room.deleteTitle')}
                             >
                               <X className="w-3 h-3" />
                             </Button>
@@ -735,7 +768,7 @@ export function GuestHouseLiveGrid() {
         {/* Hint for delete */}
         {rooms.length > 0 && (
           <p className="text-center text-sm text-gray-500 mt-4">
-            💡 Nhấn nút X trên phòng/tầng để xóa
+            💡 {t('hint.deleteHint')}
           </p>
         )}
       </div>
@@ -756,7 +789,7 @@ export function GuestHouseLiveGrid() {
               className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 transition-colors w-full text-left border-b"
             >
               <Building2 className="w-5 h-5 text-purple-600" />
-              <span className="font-medium text-gray-900">Thêm tòa mới</span>
+              <span className="font-medium text-gray-900">{t('fab.addBuilding')}</span>
             </button>
             <button
               onClick={() => {
@@ -766,7 +799,7 @@ export function GuestHouseLiveGrid() {
               className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition-colors w-full text-left border-b"
             >
               <Layers className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-gray-900">Thêm Tầng Mới</span>
+              <span className="font-medium text-gray-900">{t('fab.addFloor')}</span>
             </button>
             <button
               onClick={() => {
@@ -776,7 +809,7 @@ export function GuestHouseLiveGrid() {
               className="flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition-colors w-full text-left"
             >
               <DoorOpen className="w-5 h-5 text-green-600" />
-              <span className="font-medium text-gray-900">Thêm Phòng</span>
+              <span className="font-medium text-gray-900">{t('fab.addRoom')}</span>
             </button>
           </div>
         )}
@@ -786,7 +819,7 @@ export function GuestHouseLiveGrid() {
           size="lg"
           onClick={() => setFabMenuOpen(!fabMenuOpen)}
           className="w-16 h-16 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 border-4 border-blue-700 hover:scale-110 transition-transform"
-          title="Thêm Tầng/Phòng"
+          title={t('fab.addFloorOrRoom')}
         >
           <Plus className={`w-8 h-8 transition-transform ${fabMenuOpen ? 'rotate-45' : ''}`} />
         </Button>
@@ -794,23 +827,23 @@ export function GuestHouseLiveGrid() {
 
       {/* Legend */}
       <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-lg p-4 border-2 z-30">
-        <p className="text-base font-bold mb-3 text-gray-800">Chú thích</p>
+        <p className="text-base font-bold mb-3 text-gray-800">{t('legend.title')}</p>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-blue-500 border-2 border-blue-700 rounded"></div>
-            <span className="text-sm text-gray-700">Thuê giờ</span>
+            <span className="text-sm text-gray-700">{t('legend.hourlyRent')}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-green-500 border-2 border-green-700 rounded"></div>
-            <span className="text-sm text-gray-700">Thuê ngày</span>
+            <span className="text-sm text-gray-700">{t('legend.dailyRent')}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-yellow-400 border-2 border-yellow-600 rounded"></div>
-            <span className="text-sm text-gray-700">Cần dọn</span>
+            <span className="text-sm text-gray-700">{t('legend.needsCleaning')}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-gray-300 border-2 border-gray-500 rounded"></div>
-            <span className="text-sm text-gray-700">Phòng trống</span>
+            <span className="text-sm text-gray-700">{t('legend.vacantRoom')}</span>
           </div>
         </div>
       </div>
@@ -859,29 +892,29 @@ export function GuestHouseLiveGrid() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Trash2 className="w-6 h-6 text-red-600" />
-              Xác Nhận Xóa
+              {t('delete.confirm')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa <strong>{deleteConfirm?.name}</strong>?
+              {t('delete.confirmMessage')} <strong>{deleteConfirm?.name}</strong>?
               {deleteConfirm?.type === 'floor' && (
                 <span className="block mt-2 text-red-600">
-                  ⚠️ Tất cả phòng trong tầng này sẽ bị xóa vĩnh viễn!
+                  ⚠️ {t('delete.floorWarning')}
                 </span>
               )}
               {deleteConfirm?.type === 'room' && (
                 <span className="block mt-2 text-gray-600">
-                  Phòng sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                  {t('delete.roomMessage')}
                 </span>
               )}
               {deleteConfirm?.type === 'building' && (
                 <span className="block mt-2 text-red-600">
-                  ⚠️ Tòa nhà sẽ bị xóa vĩnh viễn khỏi hệ thống. Hành động này không thể hoàn tác!
+                  ⚠️ {t('delete.buildingWarning')}
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>{t('delete.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (!deleteConfirm) return;
@@ -889,20 +922,20 @@ export function GuestHouseLiveGrid() {
                 if (deleteConfirm.type === 'floor') {
                   if (deleteConfirm.floor !== undefined) {
                     deleteFloor(deleteConfirm.floor, deleteConfirm.buildingId);
-                    toast.success(`Đã xóa ${deleteConfirm.name}`);
+                    toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
                   }
                 } else if (deleteConfirm.type === 'building') {
                   deleteBuilding(deleteConfirm.id);
-                  toast.success(`Đã xóa ${deleteConfirm.name}`);
+                  toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
                 } else {
                   deleteRoom(deleteConfirm.id);
-                  toast.success(`Đã xóa ${deleteConfirm.name}`);
+                  toast.success(`${t('delete.success')} ${deleteConfirm.name}`);
                 }
                 setDeleteConfirm(null);
               }}
               className="bg-red-600 hover:bg-red-700"
             >
-              Xóa
+              {t('delete.confirmButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
