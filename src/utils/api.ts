@@ -2,7 +2,14 @@
 
 import { getAccessToken, getRefreshToken } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+// Log API base URL in development to help debug
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('[API] Using API_BASE_URL:', API_BASE_URL);
+  console.log('[API] NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
+  console.log('[API] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+}
 
 export interface ApiError {
   message: string;
