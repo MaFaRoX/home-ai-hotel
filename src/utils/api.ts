@@ -2,7 +2,15 @@
 
 import { getAccessToken, getRefreshToken } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+// Get API base URL from environment variables
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+// Ensure API_BASE_URL ends with /api if it doesn't already
+// This handles cases where the env var is set to just the domain without /api
+if (!API_BASE_URL.endsWith('/api')) {
+  // Remove trailing slash if present, then add /api
+  API_BASE_URL = API_BASE_URL.replace(/\/$/, '') + '/api';
+}
 
 // Log API base URL in development to help debug
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
