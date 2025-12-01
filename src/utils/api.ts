@@ -26,10 +26,13 @@ export interface ApiError {
 
 export class ApiClientError extends Error {
   statusCode: number;
-  constructor(message: string, statusCode: number) {
+  retryAfter?: number; // Seconds until retry is allowed
+  
+  constructor(message: string, statusCode: number, retryAfter?: number) {
     super(message);
     this.name = 'ApiClientError';
     this.statusCode = statusCode;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -102,6 +105,19 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
+    
+    // Handle rate limiting with retry-after header
+    if (response.status === 429) {
+      const retryAfterHeader = response.headers.get('Retry-After');
+      const retryAfterSeconds = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+      
+      throw new ApiClientError(
+        errorData.message || 'Too many requests. Please try again later.',
+        response.status,
+        retryAfterSeconds
+      );
+    }
+    
     throw new ApiClientError(errorData.message || 'Request failed', response.status);
   }
 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { subscriptionApi, Subscription } from '../utils/api/subscriptions';
+import { useApp } from '../contexts/AppContext';
+import { Subscription } from '../utils/api/subscriptions';
 
 interface UseSubscriptionOptions {
   appSlug?: string;
@@ -17,36 +17,16 @@ interface UseSubscriptionReturn {
 }
 
 export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptions = {}): UseSubscriptionReturn {
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadSubscription = async () => {
-      try {
-        const sub = await subscriptionApi.getByApp(appSlug);
-        if (!cancelled) {
-          setSubscription(sub);
-        }
-      } catch (error) {
-        console.error('Failed to load subscription:', error);
-        if (!cancelled) {
-          setSubscription(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadSubscription();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [appSlug]);
+  // Use subscription from AppContext (fetched once on login)
+  const { subscription: contextSubscription, isPremium: contextIsPremium, loading: appLoading } = useApp();
+  
+  // Filter subscription by appSlug if needed (for multi-app support)
+  const subscription = contextSubscription && contextSubscription.appSlug === appSlug 
+    ? contextSubscription 
+    : null;
+  
+  // Loading is false once app has loaded (subscription is fetched during login)
+  const loading = appLoading;
 
   const hasFeature = (feature: string): boolean => {
     if (!subscription || subscription.status !== 'active') {
@@ -69,7 +49,8 @@ export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptio
 
   // Free tier: max 8 rooms, max 1 building
   // Premium: unlimited (-1)
-  const isPremium = subscription?.status === 'active' && subscription.planSlug === 'premium';
+  // Use isPremium from context (already calculated in AppContext)
+  const isPremium = contextIsPremium && subscription?.appSlug === appSlug;
   const maxRooms = isPremium 
     ? -1 // Unlimited for premium
     : (subscription?.features.max_rooms as number | undefined) ?? 8; // Default to 8 for free

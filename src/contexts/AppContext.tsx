@@ -18,10 +18,13 @@ interface AppContextType {
   payments: Payment[];
   businessModel: BusinessModel | null;
   loading: boolean;
+  subscription: Subscription | null;
+  isPremium: boolean;
   setBusinessModel: (model: BusinessModel | null) => void;
   login: (username: string, password: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshSubscription: () => Promise<void>;
   updateRoom: (roomId: string, updates: Partial<Room>) => Promise<void>;
   checkIn: (roomId: string, guestData: any) => Promise<void>;
   checkOut: (roomId: string) => Promise<void>;
@@ -108,6 +111,13 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       setIsPremium(false);
     }
   }, []);
+
+  // Refresh subscription (for use after upgrade)
+  const refreshSubscription = useCallback(async () => {
+    if (accessToken) {
+      await checkSubscription(accessToken);
+    }
+  }, [accessToken, checkSubscription]);
 
   // Refresh auth state (proactive token refresh)
   const refreshAuth = useCallback(async () => {
@@ -252,6 +262,17 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       setIsGuestMode(false);
     } catch (error) {
       console.error('Failed to load hotel data:', error);
+      
+      // Handle rate limiting - show warning but don't clear data
+      if (error instanceof ApiClientError && error.statusCode === 429) {
+        const { handleRateLimitError } = await import('../utils/rateLimitHandler');
+        handleRateLimitError(error);
+        // Don't clear data, just show warning and stop loading
+        setLoading(false);
+        isLoadingHotelRef.current = false;
+        return;
+      }
+      
       if (error instanceof ApiClientError && error.statusCode === 401) {
         // Unauthorized - clear auth tokens and reset state
         localStorage.removeItem('accessToken');
@@ -493,6 +514,21 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     setBusinessModelState(model);
   };
 
+  // Helper function to handle API errors, including rate limiting
+  const handleApiError = useCallback(async (error: unknown, defaultMessage?: string) => {
+    if (error instanceof ApiClientError) {
+      if (error.statusCode === 429) {
+        const { handleRateLimitError } = await import('../utils/rateLimitHandler');
+        handleRateLimitError(error);
+        return true; // Error was handled
+      } else {
+        toast.error(error.message || defaultMessage || 'An error occurred');
+        return true; // Error was handled
+      }
+    }
+    return false; // Not an ApiClientError
+  }, []);
+
   const refreshData = useCallback(async () => {
     if (!hotel || isGuestMode) return;
     try {
@@ -513,6 +549,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       setPayments(paymentsData);
     } catch (error) {
       console.error('Failed to refresh data:', error);
+      await handleApiError(error, 'Failed to refresh data');
     }
   }, [hotel, isGuestMode]);
 
@@ -571,14 +608,20 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
       setHotel(hotelData);
       setBusinessModelState(model);
-      await refreshData();
+      
+      // Hotel and building are already set, just initialize empty arrays
+      setRooms([]);
+      setPayments([]);
+      
+      // No need to refresh - we already have all the data
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
-      } else {
+      const handled = await handleApiError(error, 'Failed to create hotel');
+      if (!handled && !(error instanceof ApiClientError)) {
         toast.error('Failed to create hotel');
       }
-      throw error;
+      if (!handled) {
+        throw error;
+      }
     }
   };
 
@@ -712,6 +755,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     setAccessToken(null);
     setAccessTokenExpiry(null);
     refreshTokenRef.current = null;
+    setSubscription(null);
+    setIsPremium(false);
     setIsGuestMode(true);
   };
 
@@ -724,13 +769,20 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      await roomApi.update(roomId, updates as any);
-      await refreshData();
+      // Use the returned room data instead of fetching everything
+      const updatedRoom = await roomApi.update(roomId, updates as any);
+      
+      // Update only the specific room in local state
+      setRooms(prev => prev.map(room => 
+        room.id === roomId ? updatedRoom : room
+      ));
+      
+      // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -748,7 +800,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      await roomApi.checkIn(roomId, {
+      // Use the returned room data instead of fetching everything
+      const updatedRoom = await roomApi.checkIn(roomId, {
         name: guestData.name,
         phone: guestData.phone,
         email: guestData.email,
@@ -760,12 +813,18 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         incidentalCharges: guestData.incidentalCharges,
         checkedInBy: user?.name || user?.email,
       });
-      await refreshData();
+      
+      // Update only the specific room in local state
+      setRooms(prev => prev.map(room => 
+        room.id === roomId ? updatedRoom : room
+      ));
+      
+      // No need to refresh hotels, buildings, or staff - they haven't changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -779,13 +838,21 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      await roomApi.checkOut(roomId);
-      await refreshData();
+      // Use the returned room data instead of fetching everything
+      const updatedRoom = await roomApi.checkOut(roomId);
+      
+      // Update only the specific room in local state
+      setRooms(prev => prev.map(room => 
+        room.id === roomId ? updatedRoom : room
+      ));
+      
+      // No need to refresh hotels, buildings, or staff - they haven't changed
+      // Payments are created separately via addPayment, so no need to refresh here
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -796,13 +863,20 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      await roomApi.markCleaned(roomId);
-      await refreshData();
+      // Use the returned room data instead of fetching everything
+      const updatedRoom = await roomApi.markCleaned(roomId);
+      
+      // Update only the specific room in local state
+      setRooms(prev => prev.map(room => 
+        room.id === roomId ? updatedRoom : room
+      ));
+      
+      // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -816,8 +890,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      await staffApi.create({ hotelId: hotel.id, email, name, role });
-      await refreshData();
+      // Use the returned staff data instead of fetching everything
+      const newStaff = await staffApi.create({ hotelId: hotel.id, email, name, role });
+      
+      // Add the new staff to local state
+      setHotel(prev => prev ? {
+        ...prev,
+        staff: [...prev.staff, newStaff]
+      } : null);
+      
+      // No need to refresh hotels, buildings, rooms, or payments - they haven't changed
     } catch (error) {
       if (error instanceof ApiClientError) {
         toast.error(error.message);
@@ -835,12 +917,25 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     if (!hotel) return;
 
     try {
-      // Fetch room from backend to ensure we have the most up-to-date data
-      // This prevents race conditions after checkout when local state might be stale
-      let room;
+      // Try to use local state first - it should be fresh after check-in
+      let room: Room | undefined;
       if (roomId) {
-        // Fetch directly from backend to avoid stale local state
-        room = await roomApi.get(roomId);
+        // First try to find room in local state
+        room = rooms.find(r => r.id === roomId);
+        
+        // Only fetch from backend if:
+        // 1. Room not found in local state, OR
+        // 2. Room found but doesn't have guest data (might be stale)
+        if (!room || !room.guest) {
+          room = await roomApi.get(roomId);
+          // Update local state with fetched room if it was missing
+          if (!rooms.find(r => r.id === roomId)) {
+            setRooms(prev => [...prev, room!]);
+          } else if (room.guest) {
+            // Update existing room in local state with fresh guest data
+            setRooms(prev => prev.map(r => r.id === roomId ? room! : r));
+          }
+        }
       } else {
         // Fallback: find by room number from local state if roomId not provided
         // Backend will validate the room belongs to the hotel anyway
@@ -855,7 +950,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       const isHourly = room.guest?.isHourly ?? 
         (payment.roomCharge > 0 && payment.checkInDate !== payment.checkOutDate ? false : true);
 
-      await paymentApi.create({
+      // Use the returned payment data instead of fetching everything
+      const createdPayment = await paymentApi.create({
         hotelId: hotel.id,
         roomId: room.id,
         roomNumber: payment.roomNumber,
@@ -876,12 +972,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         companyAddress: payment.companyAddress,
         processedBy: payment.processedBy,
       });
-      await refreshData();
+      
+      // Add the new payment to local state (prepend since it's the most recent)
+      setPayments(prev => [createdPayment, ...prev]);
+      
+      // No need to refresh hotels, buildings, staff, or rooms - they haven't changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -922,13 +1022,44 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     try {
       const deletedCount = await paymentApi.deleteByPeriod(hotel.id, period);
-      toast.success(`Đã xóa ${deletedCount} bản ghi thanh toán`);
-      await refreshData();
-    } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      
+      // Filter payments locally based on period instead of fetching everything
+      const now = new Date();
+      let filteredPayments = payments;
+      
+      switch (period) {
+        case 'today':
+          const today = now.toISOString().split('T')[0];
+          filteredPayments = payments.filter(p => {
+            const paymentDate = p.timestamp || p.checkInDate;
+            return !paymentDate.startsWith(today);
+          });
+          break;
+        case 'month':
+          const currentMonth = now.toISOString().slice(0, 7);
+          filteredPayments = payments.filter(p => {
+            const paymentDate = p.timestamp || p.checkInDate;
+            return !paymentDate.startsWith(currentMonth);
+          });
+          break;
+        case 'year':
+          const currentYear = now.getFullYear().toString();
+          filteredPayments = payments.filter(p => {
+            const paymentDate = p.timestamp || p.checkInDate;
+            return !paymentDate.startsWith(currentYear);
+          });
+          break;
       }
-      throw error;
+      
+      setPayments(filteredPayments);
+      toast.success(`Đã xóa ${deletedCount} bản ghi thanh toán`);
+      
+      // No need to refresh hotels, buildings, staff, or rooms - they haven't changed
+    } catch (error) {
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
+      }
     }
   };
 
@@ -958,7 +1089,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         return;
       }
 
-      await roomApi.create({
+      // Use the returned room data instead of fetching everything
+      const createdRoom = await roomApi.create({
         hotelId: hotelId,
         buildingId: buildingId,
         roomNumber: room.number,
@@ -968,18 +1100,23 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         hourlyRate: room.hourlyRate,
         status: room.status,
       });
-      await refreshData();
+      
+      // Add the new room to local state
+      setRooms(prev => [...prev, createdRoom]);
+      
+      // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        if (error.statusCode === 404) {
-          toast.error('Hotel or building not found. Please refresh the page.');
-        } else {
-          toast.error(error.message);
-        }
+      if (error instanceof ApiClientError && error.statusCode === 404) {
+        toast.error('Hotel or building not found. Please refresh the page.');
       } else {
-        toast.error('Failed to create room');
+        const handled = await handleApiError(error, 'Failed to create room');
+        if (!handled && !(error instanceof ApiClientError)) {
+          toast.error('Failed to create room');
+        }
       }
-      throw error;
+      if (!(error instanceof ApiClientError && error.statusCode === 404)) {
+        throw error;
+      }
     }
   };
 
@@ -991,12 +1128,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     try {
       await roomApi.delete(roomId);
-      await refreshData();
+      
+      // Remove the room from local state
+      setRooms(prev => prev.filter(r => r.id !== roomId));
+      
+      // No need to refresh hotels, buildings, staff, or payments - they haven't changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -1017,6 +1158,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       return true;
     });
 
+    const roomIdsToDelete = roomsToDelete.map(r => r.id);
+
     for (const room of roomsToDelete) {
       try {
         await roomApi.delete(room.id);
@@ -1024,7 +1167,11 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         console.error(`Failed to delete room ${room.id}:`, error);
       }
     }
-    await refreshData();
+    
+    // Remove deleted rooms from local state
+    setRooms(prev => prev.filter(r => !roomIdsToDelete.includes(r.id)));
+    
+    // No need to refresh hotels, buildings, staff, or payments - they haven't changed
   };
 
   const bulkUpdateRoomPrices = async (roomIds: string[], price: number) => {
@@ -1035,15 +1182,24 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       return;
     }
 
-    // Update rooms individually
+    // Update rooms individually and collect successfully updated rooms
+    const updatedRooms: Room[] = [];
     for (const roomId of roomIds) {
       try {
-        await roomApi.update(roomId, { price });
+        const updatedRoom = await roomApi.update(roomId, { price });
+        updatedRooms.push(updatedRoom);
       } catch (error) {
         console.error(`Failed to update room ${roomId}:`, error);
       }
     }
-    await refreshData();
+    
+    // Update local state with all successfully updated rooms
+    setRooms(prev => prev.map(room => {
+      const updated = updatedRooms.find(u => u.id === room.id);
+      return updated || room;
+    }));
+    
+    // No need to refresh hotels, buildings, staff, or payments - they haven't changed
   };
 
   const updateHotelInfo = async (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string) => {
@@ -1058,10 +1214,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       const updated = await hotelApi.update(hotel.id, { name, address, taxCode, phoneNumber, email });
       setHotel(updated);
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -1082,10 +1238,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       });
       setHotel(updated);
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -1106,10 +1262,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       });
       setHotel({ ...hotel, buildings: [...hotel.buildings, newBuilding] });
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -1137,10 +1293,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         buildings: hotel.buildings.map(b => b.id === buildingId ? updated : b),
       });
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -1162,12 +1318,19 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
 
     try {
       await buildingApi.delete(buildingId);
-      await refreshData();
+      
+      // Remove the building from local state
+      setHotel(prev => prev ? {
+        ...prev,
+        buildings: prev.buildings.filter(b => b.id !== buildingId)
+      } : null);
+      
+      // No need to refresh hotels, rooms, staff, or payments - only buildings changed
     } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
+      const handled = await handleApiError(error);
+      if (!handled) {
+        throw error;
       }
-      throw error;
     }
   };
 
@@ -1180,10 +1343,13 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         payments,
         businessModel,
         loading,
+        subscription,
+        isPremium,
         setBusinessModel,
         login,
         signInWithGoogle,
         logout,
+        refreshSubscription,
         updateRoom,
         checkIn,
         checkOut,

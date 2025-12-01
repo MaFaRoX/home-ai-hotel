@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react';
-import { subscriptionApi, Subscription } from '../utils/api/subscriptions';
+import { useState } from 'react';
+import { useApp } from '../contexts/AppContext';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -16,30 +16,21 @@ interface SubscriptionStatusProps {
 
 export function SubscriptionStatus({ appSlug = 'guesthouse', className }: SubscriptionStatusProps) {
   const { t } = useLanguage();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Use subscription from AppContext (fetched once on login)
+  const { subscription: contextSubscription, loading: appLoading, refreshSubscription } = useApp();
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
 
-  const loadSubscription = async () => {
-    try {
-      const sub = await subscriptionApi.getByApp(appSlug);
-      setSubscription(sub);
-    } catch (error) {
-      console.error('Failed to load subscription:', error);
-    } finally {
-      setLoading(false);
-    }
+  // Filter subscription by appSlug if needed
+  const subscription = contextSubscription && contextSubscription.appSlug === appSlug 
+    ? contextSubscription 
+    : null;
+
+  const handleUpgradeSuccess = async () => {
+    // Refresh subscription from AppContext after upgrade
+    await refreshSubscription();
   };
 
-  useEffect(() => {
-    loadSubscription();
-  }, [appSlug]);
-
-  const handleUpgradeSuccess = () => {
-    loadSubscription();
-  };
-
-  if (loading) {
+  if (appLoading) {
     return (
       <Card className={`p-3 bg-gray-50 border-gray-200 ${className || ''}`}>
         <div className="flex items-center gap-2">
