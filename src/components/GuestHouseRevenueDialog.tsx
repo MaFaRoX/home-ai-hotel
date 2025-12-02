@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Card } from './ui/card';
@@ -21,6 +21,7 @@ import { Button } from './ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { toast } from 'sonner';
 import { useSubscription } from '../hooks/useSubscription';
+import { PremiumDialog } from './PremiumDialog';
 
 interface GuestHouseRevenueDialogProps {
   open: boolean;
@@ -31,25 +32,45 @@ interface RevenueData {
   date: string;
   amount: number;
   roomNumber: string;
+  roomDisplayName: string; // Room number with building name: "Room 101 (Building name)"
   guestName: string;
   isHourly: boolean;
   paymentMethod: string;
 }
 
 export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDialogProps) {
-  const { rooms, payments, clearPaymentsByPeriod } = useApp();
+  const { rooms, payments, clearPaymentsByPeriod, hotel } = useApp();
   const { t } = useLanguage();
   const { hasAdvancedReports } = useSubscription({ appSlug: 'guesthouse' });
   const [activeTab, setActiveTab] = useState<'today' | 'month' | 'year'>('today');
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'month' | 'year' | null>(null);
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
 
-  // Reset to 'today' if advanced reports is disabled and current tab is 'year'
-  useEffect(() => {
-    if (!hasAdvancedReports && activeTab === 'year') {
-      setActiveTab('today');
+  // Helper function to get building name from roomId
+  const getBuildingName = useCallback((roomId?: string): string => {
+    if (!roomId || !hotel) return '';
+    const room = rooms.find(r => r.id === roomId);
+    if (!room) return '';
+    const building = hotel.buildings.find(b => b.id === room.buildingId);
+    return building ? building.name : '';
+  }, [rooms, hotel]);
+
+  // Helper function to format room display name with building
+  const formatRoomDisplayName = useCallback((roomNumber: string, roomId?: string): string => {
+    const buildingName = getBuildingName(roomId);
+    return buildingName ? `${roomNumber}(${buildingName})` : roomNumber;
+  }, [getBuildingName]);
+
+  // Handle tab change - show premium dialog if trying to access year tab without premium
+  const handleTabChange = (value: string) => {
+    if (value === 'year' && !hasAdvancedReports) {
+      setShowPremiumDialog(true);
+      toast.error(t('export.premiumRequired') || 'This feature requires Premium subscription');
+      return; // Don't allow switching to year tab if not subscribed
     }
-  }, [hasAdvancedReports, activeTab]);
+    setActiveTab(value as 'today' | 'month' | 'year');
+  };
 
   const handleClearReports = async () => {
     if (!selectedPeriod) return;
@@ -74,10 +95,12 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
     
     // Only add completed payments (actual revenue from checked-out guests)
     payments.forEach(payment => {
+      const roomDisplayName = formatRoomDisplayName(payment.roomNumber, payment.roomId);
       history.push({
         date: payment.timestamp || payment.checkInDate,
         amount: payment.total,
         roomNumber: payment.roomNumber,
+        roomDisplayName: roomDisplayName,
         guestName: payment.guestName,
         isHourly: payment.roomCharge > 0 && payment.checkInDate !== payment.checkOutDate ? false : true, // Simplified check
         paymentMethod: payment.paymentMethod
@@ -86,7 +109,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
 
     // Sort by date descending
     return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [payments]);
+  }, [payments, formatRoomDisplayName]);
 
   // Today's revenue
   const todayRevenue = useMemo(() => {
@@ -222,19 +245,20 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
           </div>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className={`grid w-full ${hasAdvancedReports ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="today" className="text-base">
               {t('revenue.today')}
             </TabsTrigger>
             <TabsTrigger value="month" className="text-base">
               {t('revenue.month')}
             </TabsTrigger>
-            {hasAdvancedReports && (
-              <TabsTrigger value="year" className="text-base">
-                {t('revenue.year')}
-              </TabsTrigger>
-            )}
+            <TabsTrigger 
+              value="year" 
+              className={`text-base ${!hasAdvancedReports ? 'opacity-50' : ''}`}
+            >
+              {t('revenue.year')}
+            </TabsTrigger>
           </TabsList>
 
           {/* Today Tab */}
@@ -243,7 +267,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             <ExportReportButtons
               data={todayRevenue.map(r => ({
                 date: r.date,
-                roomNumber: r.roomNumber,
+                roomNumber: r.roomDisplayName, // Use display name with building
                 guestName: r.guestName,
                 amount: r.amount,
                 type: r.isHourly ? 'Gio' : 'Ngay'
@@ -298,7 +322,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           <Home className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-semibold">{t('common.room')} {item.roomNumber}</p>
+                          <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
                           <p className="text-sm text-gray-600">{item.guestName}</p>
                           <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
                         </div>
@@ -324,7 +348,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             <ExportReportButtons
               data={monthRevenue.map(r => ({
                 date: r.date,
-                roomNumber: r.roomNumber,
+                roomNumber: r.roomDisplayName, // Use display name with building
                 guestName: r.guestName,
                 amount: r.amount,
                 type: r.isHourly ? 'Gio' : 'Ngay'
@@ -381,7 +405,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           <Home className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-semibold">{t('common.room')} {item.roomNumber}</p>
+                          <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
                           <p className="text-sm text-gray-600">{item.guestName}</p>
                           <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
                         </div>
@@ -401,14 +425,19 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             </Card>
           </TabsContent>
 
-          {/* Year Tab - Only shown if advanced_reports is enabled */}
-          {hasAdvancedReports && (
-            <TabsContent value="year" className="space-y-4">
+          {/* Year Tab */}
+          <TabsContent value="year" className="space-y-4">
+            {!hasAdvancedReports ? (
+              <Card className="p-8 text-center">
+                <p className="text-gray-500 text-lg">{t('revenue.noRevenueYear')}</p>
+              </Card>
+            ) : (
+              <>
             {/* Export Buttons */}
             <ExportReportButtons
               data={yearRevenue.map(r => ({
                 date: r.date,
-                roomNumber: r.roomNumber,
+                roomNumber: r.roomDisplayName, // Use display name with building
                 guestName: r.guestName,
                 amount: r.amount,
                 type: r.isHourly ? 'Gio' : 'Ngay'
@@ -473,10 +502,16 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 </div>
               )}
             </Card>
+              </>
+            )}
           </TabsContent>
-          )}
         </Tabs>
       </DialogContent>
+      <PremiumDialog 
+        open={showPremiumDialog} 
+        onOpenChange={setShowPremiumDialog}
+        onUpgradeSuccess={() => setShowPremiumDialog(false)}
+      />
     </Dialog>
   );
 }

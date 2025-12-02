@@ -28,6 +28,7 @@ export interface IncidentalCharge {
 
 export interface Payment {
   id: string;
+  roomId?: string; // Link to room for building lookup
   roomNumber: string;
   guestName: string;
   checkInDate: string;

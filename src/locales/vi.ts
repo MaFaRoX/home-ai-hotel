@@ -240,6 +240,11 @@ export const vi = {
   'login.success': 'Đăng nhập thành công!',
   'login.login': 'Đăng nhập',
   'login.loginWithGoogle': 'Đăng nhập với Google',
+  'login.loginWithFacebook': 'Đăng nhập với Facebook',
+  'login.loginWithApple': 'Đăng nhập với Apple',
+  'login.businessModel.hotel': 'Khách sạn',
+  'login.businessModel.guesthouse': 'Nhà nghỉ',
+  'login.businessModel.boarding-house': 'Nhà trọ',
   
   // Room Dialog
   'room.manageRoom': 'Quản lý thông tin phòng và check-in/check-out khách',
@@ -616,7 +621,7 @@ export const vi = {
   'premium.extend': 'Gia hạn',
 
   // Subscription banner
-  'subscription.freePlanTitle': 'Gói miễn phí - Giới hạn 10 phòng',
+  'subscription.freePlanTitle': 'Gói miễn phí',
   'subscription.upgradeButton': 'Nâng cấp',
 } as const;
 

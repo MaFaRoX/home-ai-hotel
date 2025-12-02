@@ -65,13 +65,17 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
     return formatCurrency(amount);
   };
 
-  const exportToExcel = () => {
+  const handleExcelClick = () => {
     // Check export permission (following CV_Online pattern)
     if (!canExportReports) {
       setShowPremiumDialog(true);
       toast.error(t('export.premiumRequired') || 'Export to Excel requires Premium subscription');
       return;
     }
+    exportToExcel();
+  };
+
+  const exportToExcel = () => {
 
     try {
       if (data.length === 0) {
@@ -209,13 +213,17 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
     }
   };
 
-  const exportToPDF = () => {
+  const handlePDFClick = () => {
     // Check export permission (following CV_Online pattern)
     if (!canExportReports) {
       setShowPremiumDialog(true);
       toast.error(t('export.premiumRequired') || 'Export to PDF requires Premium subscription');
       return;
     }
+    exportToPDF();
+  };
+
+  const exportToPDF = () => {
 
     try {
       if (data.length === 0) {
@@ -438,20 +446,18 @@ export function ExportReportButtons({ data, reportType, period, summary, viewMod
     <>
       <div className="flex gap-2">
         <Button
-          onClick={exportToExcel}
+          onClick={handleExcelClick}
           variant="outline"
-          disabled={!canExportReports}
-          className={`flex-1 bg-green-50 hover:bg-green-100 border-green-300 text-green-700 ${!canExportReports ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`flex-1 bg-green-50 hover:bg-green-100 border-green-300 text-green-700 ${!canExportReports ? 'opacity-50' : ''}`}
           title={!canExportReports ? (t('export.premiumRequired') || 'Premium required') : ''}
         >
           <FileSpreadsheet className="w-4 h-4 mr-2" />
           {t('export.excel')}
         </Button>
         <Button
-          onClick={exportToPDF}
+          onClick={handlePDFClick}
           variant="outline"
-          disabled={!canExportReports}
-          className={`flex-1 bg-red-50 hover:bg-red-100 border-red-300 text-red-700 ${!canExportReports ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`flex-1 bg-red-50 hover:bg-red-100 border-red-300 text-red-700 ${!canExportReports ? 'opacity-50' : ''}`}
           title={!canExportReports ? (t('export.premiumRequired') || 'Premium required') : ''}
         >
           <FileText className="w-4 h-4 mr-2" />

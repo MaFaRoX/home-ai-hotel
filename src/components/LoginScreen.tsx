@@ -6,11 +6,18 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-import { Hotel } from 'lucide-react';
+import { Hotel, Globe } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { businessModelInfo } from '../utils/businessModelFeatures';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
+import { languages } from '../locales';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 declare global {
   interface Window {
@@ -23,12 +30,16 @@ declare global {
         };
       };
     };
+    FB?: {
+      init: (config: { appId: string; cookie: boolean; xfbml: boolean; version: string }) => void;
+      login: (callback: (response: any) => void, options?: { scope: string }) => void;
+    };
   }
 }
 
 export function LoginScreen() {
-  const { hotel, businessModel, login, signInWithGoogle, setupHotel, loading } = useApp();
-  const { t } = useLanguage();
+  const { hotel, businessModel, login, signInWithGoogle, signInWithFacebook, signInWithApple, setupHotel, loading } = useApp();
+  const { language, setLanguage, t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showSetup, setShowSetup] = useState(false);
@@ -170,6 +181,94 @@ export function LoginScreen() {
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    if (isLoggingIn) return;
+    
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+    if (!appId) {
+      toast.error('Facebook authentication is not configured');
+      return;
+    }
+
+    try {
+      setIsLoggingIn(true);
+      
+      // Load Facebook SDK if not already loaded
+      if (!window.FB) {
+        await loadFacebookSDK(appId);
+      }
+
+      window.FB!.login((response: any) => {
+        if (response.authResponse) {
+          signInWithFacebook(response.authResponse.accessToken).catch(() => {
+            // Error already handled in signInWithFacebook
+          });
+        } else {
+          toast.error('Facebook sign-in was cancelled');
+          setIsLoggingIn(false);
+        }
+      }, { scope: 'email,public_profile' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Facebook sign-in failed';
+      toast.error(message);
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (isLoggingIn) return;
+    
+    const clientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID;
+    if (!clientId) {
+      toast.error('Apple authentication is not configured');
+      return;
+    }
+
+    try {
+      setIsLoggingIn(true);
+      
+      // Apple Sign In will be handled via their JS SDK when env vars are added
+      // For now, this is a placeholder that will work once configured
+      toast.info('Apple Sign-In will be available once configured');
+      setIsLoggingIn(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Apple sign-in failed';
+      toast.error(message);
+      setIsLoggingIn(false);
+    }
+  };
+
+  const loadFacebookSDK = (appId: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (window.FB) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      script.async = true;
+      script.defer = true;
+      script.crossOrigin = 'anonymous';
+      
+      script.onload = () => {
+        window.FB!.init({
+          appId: appId,
+          cookie: true,
+          xfbml: true,
+          version: 'v18.0'
+        });
+        resolve();
+      };
+      
+      script.onerror = () => {
+        reject(new Error('Failed to load Facebook SDK'));
+      };
+      
+      document.head.appendChild(script);
+    });
+  };
+
   const handleSetupHotel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessModel) {
@@ -224,17 +323,46 @@ export function LoginScreen() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-3 sm:p-4">
-      <Card className="w-full max-w-md p-6 sm:p-8">
+      <Card className="w-full max-w-md p-6 sm:p-8 relative">
+        {/* Language Button - Top Right */}
+        <div className="absolute top-4 right-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-600 hover:bg-gray-100 !w-10 !h-10"
+                title={t('header.language')}
+              >
+                <Globe className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {Object.values(languages).map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  className={language === lang.code ? 'bg-accent' : ''}
+                >
+                  <span className="mr-2">{lang.flag}</span>
+                  {lang.name}
+                  {language === lang.code && <span className="ml-auto">✓</span>}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Hotel className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-gray-900 mb-2">Live Grid Hotel</h1>
           <p className="text-gray-500">{t('login.tagline')}</p>
-          {modelInfo && (
+          {modelInfo && businessModel && (
             <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
               <span className="text-xl">{modelInfo.icon}</span>
-              <span className="text-sm text-blue-900">{modelInfo.title}</span>
+              <span className="text-sm text-blue-900">{t(`login.businessModel.${businessModel}` as any)}</span>
             </div>
           )}
         </div>
@@ -286,6 +414,36 @@ export function LoginScreen() {
               />
             </svg>
             {t('login.loginWithGoogle') || 'Login with Google'}
+          </Button>
+
+          {/* Facebook Sign In Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleFacebookSignIn}
+            className="w-full flex items-center justify-center gap-2"
+            size="lg"
+            disabled={loading || isLoggingIn}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            {t('login.loginWithFacebook') || 'Login with Facebook'}
+          </Button>
+
+          {/* Apple Sign In Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleAppleSignIn}
+            className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100 border-gray-300"
+            size="lg"
+            disabled={loading || isLoggingIn}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            {t('login.loginWithApple') || 'Login with Apple'}
           </Button>
           
           <Button

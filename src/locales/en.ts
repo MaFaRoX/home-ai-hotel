@@ -242,6 +242,11 @@ export const en = {
   'login.success': 'Login successful!',
   'login.login': 'Login',
   'login.loginWithGoogle': 'Login with Google',
+  'login.loginWithFacebook': 'Login with Facebook',
+  'login.loginWithApple': 'Login with Apple',
+  'login.businessModel.hotel': 'Hotel',
+  'login.businessModel.guesthouse': 'Guest House',
+  'login.businessModel.boarding-house': 'Boarding House',
   
   // Room Dialog
   'room.manageRoom': 'Manage room information and check-in/check-out guests',
@@ -616,7 +621,7 @@ export const en = {
   'premium.extend': 'Extend',
 
   // Subscription banner
-  'subscription.freePlanTitle': 'Free Plan - Limited to 10 rooms',
+  'subscription.freePlanTitle': 'Free Plan',
   'subscription.upgradeButton': 'Upgrade',
 } as const;
 

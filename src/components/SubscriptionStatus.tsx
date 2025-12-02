@@ -48,7 +48,7 @@ export function SubscriptionStatus({ appSlug = 'guesthouse', className }: Subscr
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-yellow-600" />
               <span className="text-sm text-yellow-800">
-                {t('subscription.freePlanTitle' as any) || 'Free Plan - Limited to 10 rooms'}
+                {t('subscription.freePlanTitle' as any) || 'Free Plan'}
               </span>
             </div>
             <Button size="sm" variant="outline" onClick={() => setShowPremiumDialog(true)}>

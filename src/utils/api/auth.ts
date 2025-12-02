@@ -35,6 +35,14 @@ export interface GoogleAuthPayload {
   idToken: string;
 }
 
+export interface FacebookAuthPayload {
+  accessToken: string;
+}
+
+export interface AppleAuthPayload {
+  idToken: string;
+}
+
 async function apiRequest<TResponse, TBody = unknown>(
   path: string,
   { method = 'GET', body, token }: { method?: string; body?: TBody; token?: string | null } = {},
@@ -77,6 +85,12 @@ export const authApi = {
 
   googleAuth: (payload: GoogleAuthPayload) =>
     apiRequest<LoginResponse, GoogleAuthPayload>('/auth/google', { method: 'POST', body: payload }),
+
+  facebookAuth: (payload: FacebookAuthPayload) =>
+    apiRequest<LoginResponse, FacebookAuthPayload>('/auth/facebook', { method: 'POST', body: payload }),
+
+  appleAuth: (payload: AppleAuthPayload) =>
+    apiRequest<LoginResponse, AppleAuthPayload>('/auth/apple', { method: 'POST', body: payload }),
 
   refresh: (refreshToken: string) =>
     apiRequest<LoginResponse, { refreshToken: string }>('/auth/refresh', {

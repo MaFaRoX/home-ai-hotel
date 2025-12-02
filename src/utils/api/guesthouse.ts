@@ -157,6 +157,7 @@ function convertRoom(backend: BackendRoom): Room {
 function convertPayment(backend: BackendPayment): Payment {
   return {
     id: backend.id.toString(),
+    roomId: backend.roomId.toString(), // Include roomId for building lookup
     roomNumber: backend.roomNumber,
     guestName: backend.guestName,
     checkInDate: backend.checkInDate,

@@ -23,6 +23,8 @@ interface AppContextType {
   setBusinessModel: (model: BusinessModel | null) => void;
   login: (username: string, password: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
+  signInWithFacebook: (accessToken: string) => Promise<void>;
+  signInWithApple: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSubscription: () => Promise<void>;
   updateRoom: (roomId: string, updates: Partial<Room>) => Promise<void>;
@@ -737,6 +739,80 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
   };
 
+  const signInWithFacebook = async (accessToken: string) => {
+    if (isLoggingInRef.current) {
+      return;
+    }
+
+    isLoggingInRef.current = true;
+    try {
+      setLoading(true);
+      const { user: authUser, tokens } = await authApi.facebookAuth({ accessToken });
+      applyAuthSuccess(authUser, tokens);
+      
+      await checkSubscription(tokens.accessToken);
+      
+      localStorage.removeItem('hotel-app-hotel');
+      localStorage.removeItem('hotel-app-user');
+      localStorage.removeItem('hotel-app-rooms');
+      
+      const authenticatedUser: User = {
+        id: authUser.id.toString(),
+        email: authUser.username,
+        name: authUser.fullName,
+        role: 'admin',
+        hotelId: '',
+        hotelName: '',
+      };
+      await loadHotelData(authenticatedUser);
+      toast.success('Signed in with Facebook successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Facebook sign-in failed';
+      toast.error(message);
+      setLoading(false);
+      throw error;
+    } finally {
+      isLoggingInRef.current = false;
+    }
+  };
+
+  const signInWithApple = async (idToken: string) => {
+    if (isLoggingInRef.current) {
+      return;
+    }
+
+    isLoggingInRef.current = true;
+    try {
+      setLoading(true);
+      const { user: authUser, tokens } = await authApi.appleAuth({ idToken });
+      applyAuthSuccess(authUser, tokens);
+      
+      await checkSubscription(tokens.accessToken);
+      
+      localStorage.removeItem('hotel-app-hotel');
+      localStorage.removeItem('hotel-app-user');
+      localStorage.removeItem('hotel-app-rooms');
+      
+      const authenticatedUser: User = {
+        id: authUser.id.toString(),
+        email: authUser.username,
+        name: authUser.fullName,
+        role: 'admin',
+        hotelId: '',
+        hotelName: '',
+      };
+      await loadHotelData(authenticatedUser);
+      toast.success('Signed in with Apple successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Apple sign-in failed';
+      toast.error(message);
+      setLoading(false);
+      throw error;
+    } finally {
+      isLoggingInRef.current = false;
+    }
+  };
+
   const logout = async () => {
     const activeRefreshToken = refreshTokenRef.current;
     if (activeRefreshToken && !isGuestMode) {
@@ -769,8 +845,20 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
+      // Map frontend Room fields to API format
+      const apiUpdates: any = { ...updates };
+      if ('type' in updates && updates.type !== undefined) {
+        apiUpdates.roomType = updates.type;
+        delete apiUpdates.type;
+      }
+      // Map 'number' to 'roomNumber' if present
+      if ('number' in updates && updates.number !== undefined) {
+        apiUpdates.roomNumber = updates.number;
+        delete apiUpdates.number;
+      }
+      
       // Use the returned room data instead of fetching everything
-      const updatedRoom = await roomApi.update(roomId, updates as any);
+      const updatedRoom = await roomApi.update(roomId, apiUpdates);
       
       // Update only the specific room in local state
       setRooms(prev => prev.map(room => 
@@ -1348,6 +1436,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         setBusinessModel,
         login,
         signInWithGoogle,
+        signInWithFacebook,
+        signInWithApple,
         logout,
         refreshSubscription,
         updateRoom,

@@ -510,7 +510,7 @@ export function GuestHouseRoomDialog({ room, open, onClose, onDelete }: GuestHou
                             <SelectContent>
                               <SelectItem value="vacant-clean">{t('room.statusVacantClean')}</SelectItem>
                               <SelectItem value="vacant-dirty">{t('room.statusVacantDirty')}</SelectItem>
-                              <SelectItem value="out-of-order">{t('room.statusOutOfOrder')}</SelectItem>
+                              {/* <SelectItem value="out-of-order" disabled>{t('room.statusOutOfOrder')}</SelectItem> */}
                             </SelectContent>
                           </Select>
                         </div>
