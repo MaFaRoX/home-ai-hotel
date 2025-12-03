@@ -367,6 +367,10 @@ export const en = {
   'revenue.monthFormat': 'Month',
   'revenue.monthlyRevenue': 'Monthly Revenue',
   'revenue.checkins': 'check-ins',
+  'revenue.loadMore': 'Load More',
+  'revenue.freeUserLimit': 'Showing latest 30 of',
+  'revenue.upgradeToViewAll': 'Upgrade',
+  'revenue.allLoaded': 'Showing all',
   
   // Bank Account Management
   'bank.title': 'Bank Account',

@@ -249,8 +249,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       const roomsData = await roomApi.getAll(hotelData.id);
       setRooms(roomsData);
 
-      // Load payments (limit to recent)
-      const paymentsData = await paymentApi.getAll(hotelData.id, 100);
+      // Load all payments (paginated to handle more than 100)
+      const paymentsData = await paymentApi.getAllPaginated(hotelData.id);
       setPayments(paymentsData);
 
       // Update user with hotel info
@@ -411,7 +411,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           buildingApi.getAll(hotelData.id),
           staffApi.getAll(hotelData.id),
           roomApi.getAll(hotelData.id),
-          paymentApi.getAll(hotelData.id, 100),
+          paymentApi.getAllPaginated(hotelData.id),
         ]);
         
         hotelData.buildings = buildings;
@@ -537,7 +537,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       const [hotelData, roomsData, paymentsData, buildings, staff] = await Promise.all([
         hotelApi.get(),
         roomApi.getAll(hotel.id),
-        paymentApi.getAll(hotel.id, 100),
+        paymentApi.getAllPaginated(hotel.id),
         buildingApi.getAll(hotel.id),
         staffApi.getAll(hotel.id),
       ]);

@@ -328,13 +328,43 @@ export const roomApi = {
 };
 
 // Payment API
+const getAllPayments = async (hotelId: string, limit?: number, offset?: number): Promise<Payment[]> => {
+  let url = `/guesthouse/payments?hotelId=${hotelId}`;
+  if (limit !== undefined) url += `&limit=${limit}`;
+  if (offset !== undefined) url += `&offset=${offset}`;
+  const response = await api.get<{ payments: BackendPayment[] }>(url);
+  return response.payments.map(convertPayment);
+};
+
 export const paymentApi = {
-  getAll: async (hotelId: string, limit?: number, offset?: number): Promise<Payment[]> => {
-    let url = `/guesthouse/payments?hotelId=${hotelId}`;
-    if (limit !== undefined) url += `&limit=${limit}`;
-    if (offset !== undefined) url += `&offset=${offset}`;
-    const response = await api.get<{ payments: BackendPayment[] }>(url);
-    return response.payments.map(convertPayment);
+  getAll: getAllPayments,
+
+  /**
+   * Fetches all payments for a hotel by paginating through the API.
+   * This ensures all payments are loaded even if they exceed the default limit.
+   */
+  getAllPaginated: async (hotelId: string, pageSize: number = 100): Promise<Payment[]> => {
+    const allPayments: Payment[] = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const payments = await getAllPayments(hotelId, pageSize, offset);
+      
+      if (payments.length === 0) {
+        hasMore = false;
+      } else {
+        allPayments.push(...payments);
+        // If we got fewer payments than the page size, we've reached the end
+        if (payments.length < pageSize) {
+          hasMore = false;
+        } else {
+          offset += pageSize;
+        }
+      }
+    }
+
+    return allPayments;
   },
 
   create: async (data: {

@@ -367,6 +367,10 @@ export const vi = {
   'revenue.monthFormat': 'Tháng',
   'revenue.monthlyRevenue': 'Doanh thu theo tháng',
   'revenue.checkins': 'lượt check-in',
+  'revenue.loadMore': 'Tải thêm',
+  'revenue.freeUserLimit': 'Hiển thị 30 giao dịch mới nhất trong tổng số',
+  'revenue.upgradeToViewAll': 'Nâng cấp',
+  'revenue.allLoaded': 'Đã hiển thị tất cả',
   
   // Bank Account Management
   'bank.title': 'Tài khoản Ngân hàng',

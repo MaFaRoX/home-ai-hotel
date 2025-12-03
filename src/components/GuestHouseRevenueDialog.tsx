@@ -46,6 +46,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'month' | 'year' | null>(null);
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
+  const [monthVisibleCount, setMonthVisibleCount] = useState(30);
 
   // Helper function to get building name from roomId
   const getBuildingName = useCallback((roomId?: string): string => {
@@ -70,6 +71,14 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
       return; // Don't allow switching to year tab if not subscribed
     }
     setActiveTab(value as 'today' | 'month' | 'year');
+    // Reset month visible count when switching tabs
+    if (value !== 'month') {
+      setMonthVisibleCount(30);
+    }
+  };
+
+  const handleLoadMoreMonth = () => {
+    setMonthVisibleCount(prev => prev + 30);
   };
 
   const handleClearReports = async () => {
@@ -126,6 +135,25 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const monthRevenue = useMemo(() => {
     return revenueHistory.filter(r => r.date.startsWith(currentMonth));
   }, [revenueHistory, currentMonth]);
+
+  // Reset visible count when month changes
+  useEffect(() => {
+    setMonthVisibleCount(30);
+  }, [currentMonth]);
+
+  // Visible month revenue (lazy loading - show 30 at a time)
+  // Free users are limited to 30 payments only, premium users can load more
+  const visibleMonthRevenue = useMemo(() => {
+    if (!hasAdvancedReports) {
+      // Free users: only show latest 30 payments
+      return monthRevenue.slice(0, 30);
+    }
+    // Premium users: show up to monthVisibleCount
+    return monthRevenue.slice(0, monthVisibleCount);
+  }, [monthRevenue, monthVisibleCount, hasAdvancedReports]);
+
+  const hasMoreMonthPayments = hasAdvancedReports && monthRevenue.length > monthVisibleCount;
+  const isFreeUserLimited = !hasAdvancedReports && monthRevenue.length > 30;
 
   const monthTotal = monthRevenue.reduce((sum, r) => sum + r.amount, 0);
   const monthHourly = monthRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
@@ -397,30 +425,62 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               {monthRevenue.length === 0 ? (
                 <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueMonth')}</p>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {monthRevenue.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Home className="w-5 h-5 text-blue-600" />
+                <>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {visibleMonthRevenue.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Home className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
+                            <p className="text-sm text-gray-600">{item.guestName}</p>
+                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
-                          <p className="text-sm text-gray-600">{item.guestName}</p>
-                          <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">
+                            {formatCurrency(item.amount)}₫
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {item.isHourly ? t('room.hourly') : t('room.daily')}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">
-                          {formatCurrency(item.amount)}₫
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {item.isHourly ? t('room.hourly') : t('room.daily')}
-                        </Badge>
-                      </div>
+                    ))}
+                  </div>
+                  {hasMoreMonthPayments && (
+                    <div className="mt-4 flex justify-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleLoadMoreMonth}
+                        className="w-full"
+                      >
+                        {t('revenue.loadMore')} ({monthRevenue.length - monthVisibleCount} remaining)
+                      </Button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                  {isFreeUserLimited && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-center text-sm text-yellow-800 mb-2">
+                        {t('revenue.freeUserLimit')} {monthRevenue.length} {t('revenue.transactions')}
+                      </p>
+                      <Button 
+                        variant="default" 
+                        onClick={() => setShowPremiumDialog(true)}
+                        className="w-full bg-yellow-600 hover:bg-yellow-700"
+                      >
+                        {t('revenue.upgradeToViewAll') || 'Upgrade'}
+                      </Button>
+                    </div>
+                  )}
+                  {!hasMoreMonthPayments && !isFreeUserLimited && monthRevenue.length > 30 && (
+                    <p className="text-center text-sm text-gray-500 mt-4">
+                        {t('revenue.allLoaded')} {monthRevenue.length} {t('revenue.transactions')}
+                    </p>
+                  )}
+                </>
               )}
             </Card>
           </TabsContent>
