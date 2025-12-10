@@ -298,9 +298,6 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
         <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-3 sm:p-4 mx-2 sm:mx-4">
           <DialogHeader className="pb-1 space-y-0">
             <DialogTitle className="text-lg font-bold">Phòng {room.number} - {room.type}</DialogTitle>
-            <DialogDescription className="text-[10px]">
-              {t('room.manageRoom')}
-            </DialogDescription>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -608,7 +605,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
               <form onSubmit={handleCheckIn} className="space-y-2">
                 {/* Rental Type */}
                 <Card className="p-2">
-                  <Label className="text-xs font-semibold mb-1.5 block">{t('room.rentalTypeLabel')}</Label>
+                  <Label className="text-xs font-semibold mb-0.5 block">{t('room.rentalTypeLabel')}</Label>
                   <div className="grid grid-cols-2 gap-1.5">
                     <Button
                       type="button"
@@ -632,7 +629,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                 </Card>
 
                 {/* Guest Info */}
-                <Card className="p-2 space-y-2">
+                <Card className="p-2 space-y-1">
                   <div>
                     <Label htmlFor="guestName" className="text-xs font-semibold mb-0.5 block">
                       {t('room.guestName')} *
@@ -647,102 +644,104 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="guestPhone" className="text-xs font-semibold mb-0.5 block">
-                      {t('room.phoneLabel')}
-                    </Label>
-                    <Input
-                      id="guestPhone"
-                      type="tel"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="0912345678"
-                      className="text-xs h-8"
-                    />
+                  <div className={rentalType === 'hourly' ? "grid grid-cols-2 gap-2" : ""}>
+                    <div>
+                      <Label htmlFor="guestPhone" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.phoneLabel')}
+                      </Label>
+                      <Input
+                        id="guestPhone"
+                        type="tel"
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        placeholder="0912345678"
+                        className="text-xs h-8"
+                      />
+                    </div>
+
+                    {rentalType === 'hourly' && (
+                      <div>
+                        <Label htmlFor="hours" className="text-xs font-semibold mb-0.5 block">
+                          {t('room.hoursRental')}
+                        </Label>
+                        <Input
+                          id="hours"
+                          type="number"
+                          value={hours}
+                          onChange={(e) => setHours(e.target.value)}
+                          placeholder="3"
+                          className="text-xs h-8"
+                          min="1"
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
                 </Card>
 
                 {/* Hours/Days Selection */}
                 {rentalType === 'hourly' ? (
                   <Card className="p-2 space-y-2">
-                    <div>
-                      <Label htmlFor="checkInDateHourly" className="text-xs font-semibold mb-0.5 block">
-                        {t('room.checkinDate')}
-                      </Label>
-                      <Input
-                        id="checkInDateHourly"
-                        type="datetime-local"
-                        value={checkInDate}
-                        onChange={(e) => setCheckInDate(e.target.value)}
-                        className="text-xs h-8"
-                        required
-                      />
-                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="checkInDateHourly" className="text-xs font-semibold mb-0.5 block">
+                          {t('room.checkinDate')}
+                        </Label>
+                        <Input
+                          id="checkInDateHourly"
+                          type="datetime-local"
+                          value={checkInDate}
+                          onChange={(e) => setCheckInDate(e.target.value)}
+                          className="text-xs h-8"
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <Label htmlFor="hours" className="text-xs font-semibold mb-0.5 block">
-                        {t('room.hoursRental')}
-                      </Label>
-                      <Input
-                        id="hours"
-                        type="number"
-                        value={hours}
-                        onChange={(e) => setHours(e.target.value)}
-                        placeholder="3"
-                        className="text-xs h-8"
-                        min="1"
-                        required
-                      />
+                      <div>
+                        <Label htmlFor="checkOutDateHourly" className="text-xs font-semibold mb-0.5 block">
+                          {t('room.checkoutDateExpected')}
+                        </Label>
+                        <Input
+                          id="checkOutDateHourly"
+                          type="datetime-local"
+                          value={checkOutDate}
+                          className="text-xs h-8 bg-gray-50"
+                          readOnly
+                          disabled
+                        />
+                      </div>
                     </div>
-
-                    <div>
-                      <Label htmlFor="checkOutDateHourly" className="text-xs font-semibold mb-0.5 block">
-                        {t('room.checkoutDateExpected')}
-                      </Label>
-                      <Input
-                        id="checkOutDateHourly"
-                        type="datetime-local"
-                        value={checkOutDate}
-                        className="text-xs h-8 bg-gray-50"
-                        readOnly
-                        disabled
-                      />
-                    </div>
-
-                    {hours && parseInt(hours) > 0 && (
-                      <p className="text-[10px] text-gray-600 mt-1">
-                        {formatCurrency((room.hourlyRate || 0) * parseInt(hours || '0'))}₫
-                      </p>
-                    )}
                   </Card>
                 ) : (
                   <Card className="p-2 space-y-2">
-                    <div>
-                      <Label htmlFor="checkInDate" className="text-xs font-semibold mb-0.5 block">
-                        {t('room.checkinDate')}
-                      </Label>
-                      <Input
-                        id="checkInDate"
-                        type="datetime-local"
-                        value={checkInDate}
-                        onChange={(e) => setCheckInDate(e.target.value)}
-                        className="text-xs h-8"
-                        required
-                      />
-                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="checkInDate" className="text-xs font-semibold mb-0.5 block">
+                          {t('room.checkinDate')}
+                        </Label>
+                        <Input
+                          id="checkInDate"
+                          type="datetime-local"
+                          value={checkInDate}
+                          onChange={(e) => setCheckInDate(e.target.value)}
+                          className="text-xs h-8"
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <Label htmlFor="checkOutDate" className="text-xs font-semibold mb-0.5 block">
-                        {t('room.checkoutDateExpected')}
-                      </Label>
-                      <Input
-                        id="checkOutDate"
-                        type="datetime-local"
-                        value={checkOutDate}
-                        onChange={(e) => setCheckOutDate(e.target.value)}
-                        className="text-xs h-8"
-                        required
-                      />
+                      <div>
+                        <Label htmlFor="checkOutDate" className="text-xs font-semibold mb-0.5 block">
+                          {t('room.checkoutDateExpected')}
+                        </Label>
+                        <Input
+                          id="checkOutDate"
+                          type="datetime-local"
+                          value={checkOutDate}
+                          onChange={(e) => setCheckOutDate(e.target.value)}
+                          className="text-xs h-8"
+                          required
+                        />
+                      </div>
                     </div>
                   </Card>
                 )}

@@ -74,9 +74,6 @@ export function AddBuildingDialog({ open, onClose }: AddBuildingDialogProps) {
             <Building className="w-6 h-6 text-blue-600" />
             {t('add.buildingTitleBoarding')}
           </DialogTitle>
-          <DialogDescription>
-            {t('add.buildingDescriptionBoarding')}
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -164,7 +164,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('menu.hotelConfig')}</DialogTitle>
-            <DialogDescription>{t('menu.updateHotelInfo')}</DialogDescription>
           </DialogHeader>
           <form 
             onSubmit={async (e) => {
@@ -238,7 +237,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('menu.addStaffTitle')}</DialogTitle>
-            <DialogDescription>{t('menu.addStaffDescription')}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddStaff} className="space-y-4">
             <div>

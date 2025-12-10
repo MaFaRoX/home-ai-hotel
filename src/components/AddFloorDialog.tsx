@@ -140,9 +140,6 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
             <Layers className="w-6 h-6 text-blue-600" />
             {t('add.floorTitle')}
           </DialogTitle>
-          <DialogDescription>
-            {t('add.floorDescription')}
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

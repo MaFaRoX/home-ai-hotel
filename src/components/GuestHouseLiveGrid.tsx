@@ -959,9 +959,6 @@ export function GuestHouseLiveGrid() {
               <Edit2 className="w-5 h-5 text-blue-600" />
               {t('building.renameTitle') || 'Rename Building'}
             </DialogTitle>
-            <DialogDescription>
-              {t('building.renameDescription') || 'Enter a new name for this building'}
-            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1015,24 +1012,6 @@ export function GuestHouseLiveGrid() {
               <Trash2 className="w-6 h-6 text-red-600" />
               {t('delete.confirm')}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('delete.confirmMessage')} <strong>{deleteConfirm?.name}</strong>?
-              {deleteConfirm?.type === 'floor' && (
-                <span className="block mt-2 text-red-600">
-                  ⚠️ {t('delete.floorWarning')}
-                </span>
-              )}
-              {deleteConfirm?.type === 'room' && (
-                <span className="block mt-2 text-gray-600">
-                  {t('delete.roomMessage')}
-                </span>
-              )}
-              {deleteConfirm?.type === 'building' && (
-                <span className="block mt-2 text-red-600">
-                  ⚠️ {t('delete.buildingWarning')}
-                </span>
-              )}
-            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('delete.cancel')}</AlertDialogCancel>

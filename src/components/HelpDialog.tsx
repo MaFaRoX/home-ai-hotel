@@ -32,9 +32,6 @@ export function HelpDialog({ open, onClose, businessModel }: HelpDialogProps) {
               </h3>
             </div>
           </DialogTitle>
-          <DialogDescription>
-            {isBoardingHouse ? t('help.boardingDescription') : t('help.guesthouseDescription')}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-hidden">

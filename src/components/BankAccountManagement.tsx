@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Building2, CreditCard, User, FileText, Check } from 'lucide-react';
+import { Building2, CreditCard, User, FileText, Check, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { VIETNAMESE_BANKS, getBankByCode, getBankByShortName } from '../utils/vietnameseBanks';
 
@@ -21,6 +20,8 @@ export function BankAccountManagement({ open, onClose }: BankAccountManagementPr
   const { hotel, updateBankAccount } = useApp();
   const { t } = useLanguage();
   const [bankCode, setBankCode] = useState('');
+  const [bankSearchText, setBankSearchText] = useState('');
+  const [showBankDropdown, setShowBankDropdown] = useState(false);
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
 
@@ -29,21 +30,73 @@ export function BankAccountManagement({ open, onClose }: BankAccountManagementPr
       // If bankCode exists, use it; otherwise try to find by bankName (backward compatibility)
       if (hotel.bankAccount.bankCode) {
         setBankCode(hotel.bankAccount.bankCode);
+        const bank = getBankByCode(hotel.bankAccount.bankCode);
+        setBankSearchText(bank?.shortName || '');
       } else if (hotel.bankAccount.bankName) {
         // Backward compatibility: try to find bank by short name
         const bank = getBankByShortName(hotel.bankAccount.bankName);
         setBankCode(bank?.code || '');
+        setBankSearchText(bank?.shortName || hotel.bankAccount.bankName);
       } else {
         setBankCode('');
+        setBankSearchText('');
       }
       setAccountNumber(hotel.bankAccount.accountNumber || '');
       setAccountHolder(hotel.bankAccount.accountHolder || '');
     } else {
       setBankCode('');
+      setBankSearchText('');
       setAccountNumber('');
       setAccountHolder('');
     }
   }, [hotel, open]);
+
+  // Filter banks based on search text
+  const filteredBanks = useMemo(() => {
+    if (!bankSearchText.trim()) {
+      return VIETNAMESE_BANKS;
+    }
+    const searchLower = bankSearchText.toLowerCase();
+    return VIETNAMESE_BANKS.filter(
+      bank =>
+        bank.shortName.toLowerCase().includes(searchLower) ||
+        bank.fullName.toLowerCase().includes(searchLower) ||
+        bank.code.toLowerCase().includes(searchLower)
+    );
+  }, [bankSearchText]);
+
+  const handleBankSelect = (bank: typeof VIETNAMESE_BANKS[0]) => {
+    setBankCode(bank.code);
+    setBankSearchText(bank.shortName);
+    setShowBankDropdown(false);
+  };
+
+  const handleBankInputChange = (value: string) => {
+    setBankSearchText(value);
+    setShowBankDropdown(true);
+    // If user clears the input, also clear the bankCode
+    if (!value.trim()) {
+      setBankCode('');
+    }
+  };
+
+  const handleBankInputFocus = () => {
+    setShowBankDropdown(true);
+  };
+
+  const handleBankInputBlur = () => {
+    // Delay hiding dropdown to allow click
+    setTimeout(() => {
+      setShowBankDropdown(false);
+      // If bankCode is set but search text doesn't match, restore the bank name
+      if (bankCode && !bankSearchText) {
+        const bank = getBankByCode(bankCode);
+        if (bank) {
+          setBankSearchText(bank.shortName);
+        }
+      }
+    }, 200);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,9 +132,6 @@ export function BankAccountManagement({ open, onClose }: BankAccountManagementPr
             <FileText className="w-5 h-5 text-gray-600" />
             <DialogTitle className="text-xl font-bold">{t('bank.title')}</DialogTitle>
           </div>
-          <DialogDescription className="text-sm mt-2">
-            {t('bank.description')}
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-4">
@@ -91,18 +141,42 @@ export function BankAccountManagement({ open, onClose }: BankAccountManagementPr
               <Building2 className="w-4 h-4 text-gray-500" />
               {t('bank.bankNameLabel')}
             </Label>
-            <Select value={bankCode} onValueChange={setBankCode} required>
-              <SelectTrigger id="bank-select">
-                <SelectValue placeholder={t('bank.bankNamePlaceholder')} />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {VIETNAMESE_BANKS.map((bank) => (
-                  <SelectItem key={bank.code} value={bank.code}>
-                    {bank.shortName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Input
+                id="bank-select"
+                value={bankSearchText}
+                onChange={(e) => handleBankInputChange(e.target.value)}
+                onFocus={handleBankInputFocus}
+                onBlur={handleBankInputBlur}
+                placeholder={t('bank.bankNamePlaceholder')}
+                required
+                className="pr-10"
+              />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              {showBankDropdown && filteredBanks.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[300px] overflow-y-auto">
+                  {filteredBanks.map((bank) => (
+                    <button
+                      key={bank.code}
+                      type="button"
+                      className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors first:rounded-t-md last:rounded-b-md"
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Prevent input blur
+                        handleBankSelect(bank);
+                      }}
+                    >
+                      <div className="font-medium">{bank.shortName}</div>
+                      <div className="text-xs text-gray-500">{bank.fullName}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showBankDropdown && filteredBanks.length === 0 && bankSearchText.trim() && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-3 text-sm text-gray-500">
+                  {t('bank.noBanksFound')}
+                </div>
+              )}
+            </div>
             {selectedBank && (
               <p className="text-xs text-gray-500">
                 {selectedBank.fullName}

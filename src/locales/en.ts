@@ -411,6 +411,7 @@ export const en = {
   'bank.save': 'Save Changes',
   'bank.updateSuccess': 'Bank account information updated successfully!',
   'bank.invalidBankSelection': 'Please select a valid bank',
+  'bank.noBanksFound': 'No banks found',
   
   // Export Report Buttons
   'export.noData': 'No data to export',

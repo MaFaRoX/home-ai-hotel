@@ -372,9 +372,6 @@ export function GuestHousePaymentDialog({
           <>
             <DialogHeader>
               <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.selectMethod')}</DialogTitle>
-              <DialogDescription className="text-sm sm:text-base">
-                {t('payment.selectMethodDescription')}
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -462,9 +459,6 @@ export function GuestHousePaymentDialog({
           <>
             <DialogHeader className="no-print">
               <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
-              <DialogDescription className="text-sm sm:text-base">
-                {t('payment.receiptDescription')}
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 receipt-content">

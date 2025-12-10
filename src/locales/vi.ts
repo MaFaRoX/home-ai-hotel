@@ -175,7 +175,7 @@ export const vi = {
   'add.errorPrice': 'Vui lòng nhập giá phòng hợp lệ',
   'add.errorHourlyRate': 'Vui lòng nhập giá theo giờ hợp lệ',
   'add.floorTitle': 'Thêm Tầng Mới',
-  'add.floorNumberLabel': 'Số Tầng',
+  'add.floorNumberLabel': 'Tầng Số',
   'add.floorNumberHint': 'Nhập số tầng (ví dụ: 1, 2, 3...)',
   'add.addFloor': 'Thêm tầng',
   'add.floorAdded': 'Đã thêm tầng',
@@ -411,6 +411,7 @@ export const vi = {
   'bank.save': 'Lưu thay đổi',
   'bank.updateSuccess': 'Cập nhật thông tin tài khoản ngân hàng thành công!',
   'bank.invalidBankSelection': 'Vui lòng chọn ngân hàng hợp lệ',
+  'bank.noBanksFound': 'Không tìm thấy ngân hàng',
   
   // Export Report Buttons
   'export.noData': 'Không có dữ liệu để xuất',

@@ -888,10 +888,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
 
     try {
-      // Only send phone if it has a value
+      // Only send phone if it has a value, send null if empty
       const checkInPayload: any = {
         name: guestData.name,
-        phone: guestData.phone?.trim() || '',
+        phone: guestData.phone?.trim() || null,
         email: guestData.email || '',
         checkInDate: guestData.checkInDate,
         checkOutDate: guestData.checkOutDate,

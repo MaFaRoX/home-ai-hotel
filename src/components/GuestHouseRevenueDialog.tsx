@@ -252,9 +252,6 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 <DollarSign className="w-8 h-8 text-green-600" />
                 {t('revenue.title')}
               </DialogTitle>
-              <DialogDescription>
-                {t('revenue.description')}
-              </DialogDescription>
             </div>
             <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
               <AlertDialogTrigger asChild>
@@ -266,9 +263,6 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>{t('revenue.clearReports')}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {t('revenue.clearReportsDescription')}
-                  </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-2 py-4">
                   <Button
@@ -361,34 +355,40 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               summary={{ total: todayTotal }}
             />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.total')}</p>
-                <p className="text-2xl font-bold text-green-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.total')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {todayRevenue.length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
                   {formatCurrency(todayTotal)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {todayRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {todayRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
                   {formatCurrency(todayHourly)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {todayRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {todayRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
                   {formatCurrency(todayDaily)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {todayRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>
@@ -442,34 +442,40 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               summary={{ total: monthTotal }}
             />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.totalMonth')}</p>
-                <p className="text-2xl font-bold text-green-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.totalMonth')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {monthRevenue.length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
                   {formatCurrency(monthTotal)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {monthRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {monthRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
                   {formatCurrency(monthHourly)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {monthRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {monthRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
                   {formatCurrency(monthDaily)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {monthRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>
@@ -563,34 +569,40 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               summary={{ total: yearTotal }}
             />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.totalYear')}</p>
-                <p className="text-2xl font-bold text-green-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.totalYear')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {yearRevenue.length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
                   {formatCurrency(yearTotal)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {yearRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {yearRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
                   {formatCurrency(yearHourly)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {yearRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {yearRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
                   {formatCurrency(yearDaily)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {yearRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>
@@ -686,34 +698,40 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               summary={{ total: allTotal }}
             />
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.total')}</p>
-                <p className="text-2xl font-bold text-green-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.total')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {allRevenue.length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
                   {formatCurrency(allTotal)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {allRevenue.length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.hourly')}</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {allRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
                   {formatCurrency(allHourly)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {allRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
 
               <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <p className="text-sm text-gray-600 mb-1">{t('revenue.daily')}</p>
-                <p className="text-2xl font-bold text-purple-600">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {allRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
                   {formatCurrency(allDaily)}₫
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {allRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
                 </p>
               </Card>
             </div>

@@ -187,9 +187,6 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
             <DoorOpen className="w-6 h-6 text-green-600" />
             {isGuesthouse ? t('add.roomTitle') : t('add.roomTitleBoarding')}
           </DialogTitle>
-          <DialogDescription>
-            {isGuesthouse ? t('add.roomDescription') : t('add.roomDescriptionBoarding')}
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

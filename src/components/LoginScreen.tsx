@@ -464,9 +464,6 @@ export function LoginScreen() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('login.login') || 'Login'}</DialogTitle>
-            <DialogDescription>
-              Enter your username and password to access your account
-            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -504,9 +501,6 @@ export function LoginScreen() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('login.setupTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('login.setupDescription')}
-            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSetupHotel} className="space-y-4">
             <div>

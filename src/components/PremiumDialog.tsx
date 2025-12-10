@@ -59,9 +59,6 @@ export function PremiumDialog({ open, onOpenChange, onUpgradeSuccess }: PremiumD
               {t('premium.title') || 'Upgrade to Premium'}
             </DialogTitle>
           </div>
-          <DialogDescription className="text-base">
-            {t('premium.subtitle') || 'Unlock all premium features'}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
