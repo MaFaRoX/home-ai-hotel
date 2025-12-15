@@ -7,14 +7,14 @@ export const vi = {
   'header.search': 'Tìm kiếm',
   'header.language': 'Ngôn ngữ',
   'header.roomConfig': 'Cấu hình Phòng',
-  
+
   // Room Status
   'status.vacant-clean': 'Trống - Sạch',
   'status.occupied': 'Có khách',
   'status.vacant-dirty': 'Trống - Bẩn',
   'status.due-out': 'Sắp trả',
   'status.out-of-order': 'Bảo trì',
-  
+
   // Actions
   'action.checkin': 'Check-in',
   'action.checkout': 'Check-out',
@@ -24,13 +24,13 @@ export const vi = {
   'action.confirm': 'Xác nhận',
   'action.back': 'Quay lại',
   'action.close': 'Đóng',
-  
+
   // Search
   'search.title': 'Tìm kiếm phòng',
   'search.placeholder': 'Nhập số phòng, tên khách, số điện thoại...',
   'search.noResults': 'Không tìm thấy kết quả',
   'search.results': 'Kết quả tìm kiếm',
-  
+
   // Common
   'common.room': 'Phòng',
   'common.guest': 'Khách',
@@ -39,7 +39,7 @@ export const vi = {
   'common.price': 'Giá',
   'common.total': 'Tổng cộng',
   'common.or': 'hoặc',
-  
+
   // Dashboard
   'dashboard.manage': 'Quản lý',
   'dashboard.totalRooms': 'Tổng phòng',
@@ -53,13 +53,13 @@ export const vi = {
   'dashboard.filteringOccupied': 'Đang lọc phòng có khách',
   'dashboard.filteringVacant': 'Đang lọc phòng trống',
   'dashboard.helpTitle': 'Hướng dẫn sử dụng',
-  
+
   // Room Status Labels
   'room.clean': 'Dọn',
   'room.vacant': 'Trống',
   'room.hourlyRate': 'Giờ',
   'room.dailyRate': 'Ngày',
-  
+
   // Building
   'building.rooms': 'phòng',
   'building.default': 'Mặc định',
@@ -73,41 +73,41 @@ export const vi = {
   'building.name': 'Tên Tòa Nhà',
   'building.namePlaceholder': 'Nhập tên tòa nhà',
   'building.nameRequired': 'Vui lòng nhập tên tòa nhà',
-  
+
   // Floor
   'floor.floor': 'Tầng',
   'floor.occupiedCount': 'có khách',
   'floor.vacantCount': 'trống',
   'floor.deleteTitle': 'Xóa tầng',
-  
+
   // Room
   'room.deleteTitle': 'Xóa phòng',
-  
+
   // Errors
   'error.cannotDeleteOccupiedRoom': 'Không thể xóa phòng đang có khách. Vui lòng trả phòng trước.',
   'error.cannotDeleteBuildingWithRooms': 'Không thể xóa tòa nhà đang có phòng. Vui lòng xóa hoặc chuyển phòng sang tòa khác trước.',
   'error.cannotDeleteFloorWithGuests': 'Không thể xóa tầng đang có khách. Vui lòng trả phòng trước.',
-  
+
   // Empty States
   'empty.noRooms': 'Chưa có phòng nào',
   'empty.addFloorAndRooms': 'Thêm tầng và phòng để bắt đầu',
-  
+
   // Hints
   'hint.deleteHint': 'Nhấn nút X trên phòng/tầng để xóa',
-  
+
   // FAB Menu
   'fab.addBuilding': 'Thêm tòa mới',
   'fab.addFloor': 'Thêm Tầng Mới',
   'fab.addRoom': 'Thêm Phòng',
   'fab.addFloorOrRoom': 'Thêm Tầng/Phòng',
-  
+
   // Legend
   'legend.title': 'Chú thích',
   'legend.hourlyRent': 'Thuê giờ',
   'legend.dailyRent': 'Thuê ngày',
   'legend.needsCleaning': 'Cần dọn',
   'legend.vacantRoom': 'Phòng trống',
-  
+
   // Delete Dialog
   'delete.confirm': 'Xác Nhận Xóa',
   'delete.confirmMessage': 'Bạn có chắc muốn xóa',
@@ -117,7 +117,7 @@ export const vi = {
   'delete.cancel': 'Hủy',
   'delete.confirmButton': 'Xóa',
   'delete.success': 'Đã xóa',
-  
+
   // AppMenu
   'menu.main': 'Menu chính',
   'menu.roomMap': 'Sơ đồ phòng',
@@ -146,7 +146,7 @@ export const vi = {
   'menu.phoneNumberPlaceholder': 'VD: 0901234567',
   'menu.email': 'Email',
   'menu.emailPlaceholder': 'VD: hotel@example.com',
-  
+
   // Add Dialogs
   'add.roomTitle': 'Thêm Phòng Mới',
   'add.roomTitleBoarding': 'Thêm Phòng Trọ Mới',
@@ -252,7 +252,7 @@ export const vi = {
   'login.businessModel.hotel': 'Khách sạn',
   'login.businessModel.guesthouse': 'Nhà nghỉ',
   'login.businessModel.boarding-house': 'Nhà trọ',
-  
+
   // Room Dialog
   'room.manageRoom': 'Quản lý thông tin phòng và check-in/check-out khách',
   'room.info': 'Thông tin',
@@ -303,7 +303,9 @@ export const vi = {
   'room.errorPriceDaily': 'Giá theo ngày phải là số dương',
   'room.errorPriceHourly': 'Giá theo giờ phải là số không âm',
   'room.updateSuccess': 'Đã cập nhật thông tin phòng',
-  
+  'room.errorCheckOutBeforeCheckIn': 'Thời gian check-out phải sau thời gian check-in',
+  'room.errorCheckOutAfterOriginal': 'Thời gian check-out không được muộn hơn thời gian check-out gốc',
+
   // Payment Dialog
   'payment.selectMethod': 'Chọn phương thức thanh toán',
   'payment.selectMethodDescription': 'Chọn cách thức thanh toán cho khách hàng',
@@ -352,7 +354,7 @@ export const vi = {
   'payment.confirmPayment': 'Xác nhận thanh toán',
   'payment.thankYou': 'Cảm ơn quý khách! Hẹn gặp lại! 🙏',
   'payment.qrCodeLabel': 'Quét mã QR để chuyển khoản',
-  
+
   // Revenue Dialog
   'revenue.title': 'Báo cáo Doanh thu',
   'revenue.description': 'Theo dõi doanh thu theo ngày, tháng, năm',
@@ -382,7 +384,7 @@ export const vi = {
   'revenue.clearReports': 'Xóa báo cáo',
   'revenue.clearReportsDescription': 'Chọn khoảng thời gian bạn muốn xóa:',
   'revenue.clear': 'Xóa',
-  
+
   // Bank Account Management
   'bank.title': 'Tài khoản Ngân hàng',
   'bank.description': 'Cấu hình thông tin tài khoản ngân hàng để nhận thanh toán từ khách',
@@ -412,7 +414,7 @@ export const vi = {
   'bank.updateSuccess': 'Cập nhật thông tin tài khoản ngân hàng thành công!',
   'bank.invalidBankSelection': 'Vui lòng chọn ngân hàng hợp lệ',
   'bank.noBanksFound': 'Không tìm thấy ngân hàng',
-  
+
   // Export Report Buttons
   'export.noData': 'Không có dữ liệu để xuất',
   'export.excelSuccess': '✅ Xuất Excel thành công!',
@@ -422,7 +424,7 @@ export const vi = {
   'export.excel': 'Xuất Excel',
   'export.pdf': 'Xuất PDF',
   'export.premiumRequired': 'Xuất Excel yêu cầu gói Premium',
-  
+
   // Help Dialog
   'help.guesthouseTitle': 'Hướng Dẫn Sử Dụng - Nhà Nghỉ',
   'help.boardingTitle': 'Hướng Dẫn Sử Dụng - Nhà Trọ',
@@ -504,7 +506,7 @@ export const vi = {
   'help.tip4Guesthouse': 'Phù hợp cho người không am hiểu công nghệ',
   'help.needMoreHelp': 'Cần hỗ trợ thêm?',
   'help.changeModel': 'Bạn có thể quay lại màn hình chọn mô hình bằng nút "Đổi mô hình" trên góc phải header',
-  
+
   // Invoice History Dialog
   'invoiceHistory.title': 'Lịch sử hóa đơn',
   'invoiceHistory.description': 'Xem, tìm kiếm và quản lý tất cả hóa đơn đã xuất',
@@ -525,7 +527,7 @@ export const vi = {
   'invoiceHistory.totalValue': 'Tổng giá trị:',
   'invoiceHistory.retail': 'Khách lẻ',
   'invoiceHistory.room': 'Phòng',
-  
+
   // Invoice PDF
   'invoicePDF.print': 'In hóa đơn',
   'invoicePDF.download': 'Tải PDF',
@@ -553,7 +555,7 @@ export const vi = {
   'invoicePDF.creatorSignatureNote': '(Ký, ghi rõ họ tên)',
   'invoicePDF.thankYou': 'Cảm ơn quý khách đã sử dụng dịch vụ!',
   'invoicePDF.autoGenerated': 'Hóa đơn được xuất tự động từ hệ thống quản lý khách sạn',
-  
+
   // Invoice Settings Dialog
   'invoiceSettings.title': 'Cấu hình Thuế & Hóa đơn',
   'invoiceSettings.description': 'Cấu hình các thông tin cần thiết để tạo hóa đơn điện tử cho khách hàng',

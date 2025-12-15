@@ -9,7 +9,7 @@ import { Card } from './ui/card';
 import { Separator } from './ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
-import { 
+import {
   Wallet,
   CreditCard,
   Building2,
@@ -27,24 +27,26 @@ import { useSubscription } from '../hooks/useSubscription';
 interface GuestHousePaymentDialogProps {
   room: Room;
   amount: number;
+  checkOutDate?: string; // Edited checkout date (optional, falls back to room.guest.checkOutDate)
   open: boolean;
   onClose: () => void;
   onComplete: (paymentMethod: PaymentMethod) => void;
 }
 
-export function GuestHousePaymentDialog({ 
-  room, 
-  amount, 
-  open, 
+export function GuestHousePaymentDialog({
+  room,
+  amount,
+  checkOutDate,
+  open,
   onClose,
-  onComplete 
+  onComplete
 }: GuestHousePaymentDialogProps) {
   const { hotel } = useApp();
   const { t } = useLanguage();
   const { subscription } = useSubscription({ appSlug: 'guesthouse' });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [step, setStep] = useState<'select' | 'receipt'>('select');
-  
+
   // Check if QR code feature is available (Premium only)
   const isPremium = subscription?.status === 'active' && subscription.planSlug === 'premium';
   const canGenerateQR = isPremium;
@@ -74,7 +76,7 @@ export function GuestHousePaymentDialog({
     const amountBeforeVAT = amount;
     const vatAmount = Math.round(amountBeforeVAT * (vatRate / 100));
     const totalWithVAT = amountBeforeVAT + vatAmount;
-    
+
     return {
       amountBeforeVAT,
       vatAmount,
@@ -87,7 +89,7 @@ export function GuestHousePaymentDialog({
     if (!hotel?.bankAccount?.bankCode || !hotel?.bankAccount?.accountNumber) {
       return null;
     }
-    
+
     return generateVietQRUrl(
       hotel.bankAccount.bankCode,
       hotel.bankAccount.accountNumber
@@ -147,8 +149,15 @@ export function GuestHousePaymentDialog({
       <style>{`
         @media print {
           @page {
-            size: 80mm auto;
-            margin: 5mm;
+            /* Explicit ticket size (width x height) */
+            size: 80mm 297mm;
+            margin: 0;
+          }
+
+          /* Remove default browser/body margins so content can use full ticket width */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
           }
           
           body * {
@@ -173,10 +182,11 @@ export function GuestHousePaymentDialog({
             top: 0 !important;
             left: 0 !important;
             transform: none !important;
-            max-width: 80mm !important;
-            width: 80mm !important;
-            margin: 0 auto !important;
-            padding: 10mm 5mm !important;
+            /* Use full printable area of the 80mm paper */
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 6mm 4mm !important;
             box-shadow: none !important;
             border: none !important;
             background: white !important;
@@ -349,7 +359,8 @@ export function GuestHousePaymentDialog({
           }
           
           .receipt-content .qr-code-print {
-            max-width: 100px !important;
+            /* 2x bigger QR for print */
+            max-width: 200px !important;
             height: auto !important;
             display: inline-block !important;
             image-rendering: -webkit-optimize-contrast !important;
@@ -368,297 +379,294 @@ export function GuestHousePaymentDialog({
       `}</style>
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-lg max-h-[95vh] overflow-y-auto mx-2 sm:mx-4 p-3 sm:p-6">
-        {step === 'select' ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.selectMethod')}</DialogTitle>
-            </DialogHeader>
+          {step === 'select' ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.selectMethod')}</DialogTitle>
+              </DialogHeader>
 
-            <div className="space-y-4">
-              {/* Quick Summary */}
-              <Card className="p-3 sm:p-4 bg-blue-50 border-blue-200">
-                <div className="flex justify-between items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">Phòng {room.number} - {room.type}</p>
-                    <p className="text-base sm:text-lg font-semibold truncate">{room.guest?.name}</p>
+              <div className="space-y-4">
+                {/* Quick Summary */}
+                <Card className="p-3 sm:p-4 bg-blue-50 border-blue-200">
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">Phòng {room.number} - {room.type}</p>
+                      <p className="text-base sm:text-lg font-semibold truncate">{room.guest?.name}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs sm:text-sm text-gray-600">{t('payment.totalAmount')}</p>
+                      <p className="text-xl sm:text-3xl font-bold text-blue-600">{formatCurrency(amount)}₫</p>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs sm:text-sm text-gray-600">{t('payment.totalAmount')}</p>
-                    <p className="text-xl sm:text-3xl font-bold text-blue-600">{formatCurrency(amount)}₫</p>
-                  </div>
-                </div>
-              </Card>
+                </Card>
 
-              {/* Payment Method Selection */}
-              <div className="space-y-2">
-                <label className="text-sm sm:text-base font-semibold text-gray-700">
-                  {t('payment.method')}
-                </label>
-                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
-                  <SelectTrigger className="text-sm sm:text-base py-4 sm:py-6">
-                    <div className="flex items-center gap-2">
-                      {getPaymentMethodIcon(paymentMethod)}
+                {/* Payment Method Selection */}
+                <div className="space-y-2">
+                  <label className="text-sm sm:text-base font-semibold text-gray-700">
+                    {t('payment.method')}
+                  </label>
+                  <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+                    <SelectTrigger className="text-sm sm:text-base py-4 sm:py-6">
                       <SelectValue />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash" className="text-base">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4" />
-                        {t('payment.cash')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="bank-transfer" className="text-base">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        {t('payment.bankTransfer')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="momo" className="text-base">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="w-4 h-4" />
-                        {t('payment.momo')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="vnpay" className="text-base">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="w-4 h-4" />
-                        {t('payment.vnpay')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="card" className="text-base">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        {t('payment.card')}
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 sm:gap-3 pt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={onClose}
-                  className="flex-1 text-sm sm:text-base py-4 sm:py-6"
-                >
-                  {t('delete.cancel')}
-                </Button>
-                <Button 
-                  onClick={handleViewReceipt}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
-                >
-                  <Receipt className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                  {t('payment.viewReceipt')}
-                </Button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <DialogHeader className="no-print">
-              <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4 receipt-content">
-              {/* Hotel Info */}
-              <div className="text-center border-b pb-4">
-                <h2 className="text-2xl font-bold text-gray-800">
-                  {hotel?.name || 'Nhà nghỉ'}
-                </h2>
-                {hotel?.address && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    {t('payment.address')}: {hotel.address}
-                  </p>
-                )}
-                {hotel?.taxCode && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    {t('payment.taxCode')}: {hotel.taxCode}
-                  </p>
-                )}
-                {hotel?.phoneNumber && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    {t('payment.phoneLabel')}: {hotel.phoneNumber}
-                  </p>
-                )}
-                {hotel?.email && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    {t('payment.email')}: {hotel.email}
-                  </p>
-                )}
-                <Separator className="my-2" />
-                <p className="text-sm text-gray-600 font-semibold mt-2">{t('payment.receiptHeader')}</p>
-                <p className="text-xs text-gray-500">{formatDate()}</p>
-              </div>
-
-              {/* Guest Info */}
-              <Card className="p-4 bg-gray-50">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('payment.guest')}:</span>
-                    <span className="font-semibold">{room.guest?.name}</span>
-                  </div>
-                  {room.guest?.phone && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t('payment.phone')}:</span>
-                      <span className="font-semibold">{room.guest.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Phòng:</span>
-                    <span className="font-semibold">{room.number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t('payment.rentalType')}:</span>
-                    <span className="font-semibold">
-                      {room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Check-in:</span>
-                    <span className="font-semibold">{formatDate(room.guest?.checkInDate)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Check-out:</span>
-                    <span className="font-semibold">{formatDate(room.guest?.checkOutDate)}</span>
-                  </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash" className="text-base">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4" />
+                          {t('payment.cash')}
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="bank-transfer" className="text-base">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          {t('payment.bankTransfer')}
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="momo" className="text-base">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" />
+                          {t('payment.momo')}
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="vnpay" className="text-base">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="w-4 h-4" />
+                          {t('payment.vnpay')}
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="card" className="text-base">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4" />
+                          {t('payment.card')}
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </Card>
 
-              {/* Itemized Charges */}
-              <Card className="p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">{t('payment.paymentDetails')}</h3>
-                
-                <div className="space-y-2 text-sm">
-                  {/* Room Charge */}
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-gray-700">
-                        {t('common.room')} ({t('payment.beforeVAT')})
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {room.guest?.isHourly 
-                          ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
-                          : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
-                        }
-                      </p>
+                {/* Action Buttons */}
+                <div className="flex gap-2 sm:gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="flex-1 text-sm sm:text-base py-4 sm:py-6"
+                  >
+                    {t('delete.cancel')}
+                  </Button>
+                  <Button
+                    onClick={handleViewReceipt}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
+                  >
+                    <Receipt className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                    {t('payment.viewReceipt')}
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader className="no-print">
+                <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 receipt-content">
+                {/* Hotel Info */}
+                <div className="text-center border-b pb-4">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {hotel?.name || 'Nhà nghỉ'}
+                  </h2>
+                  {hotel?.address && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {t('payment.address')}: {hotel.address}
+                    </p>
+                  )}
+                  {hotel?.taxCode && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {t('payment.taxCode')}: {hotel.taxCode}
+                    </p>
+                  )}
+                  {hotel?.phoneNumber && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {t('payment.phoneLabel')}: {hotel.phoneNumber}
+                    </p>
+                  )}
+                  {hotel?.email && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      {t('payment.email')}: {hotel.email}
+                    </p>
+                  )}
+                  <Separator className="my-2" />
+                  <p className="text-sm text-gray-600 font-semibold mt-2">{t('payment.receiptHeader')}</p>
+                  <p className="text-xs text-gray-600">{formatDate()}</p>
+                </div>
+
+                {/* Guest Info */}
+                <Card className="p-4 bg-gray-50">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('payment.guest')}:</span>
+                      <span className="font-semibold">{room.guest?.name}</span>
                     </div>
-                    <span className="font-semibold text-gray-800">
-                      {formatCurrency(amount)}₫
-                    </span>
-                  </div>
-
-                  {/* VAT */}
-                  {(() => {
-                    const vatCalc = calculateVAT();
-                    return (
-                      <div className="flex justify-between items-center text-gray-600">
-                        <p>VAT (8%)</p>
-                        <span className="font-semibold">
-                          {formatCurrency(vatCalc.vatAmount)}₫
-                        </span>
+                    {room.guest?.phone && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('payment.phone')}:</span>
+                        <span className="font-semibold">{room.guest.phone}</span>
                       </div>
-                    );
-                  })()}
-
-                  <Separator className="my-3" />
-
-                  {/* Total */}
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-lg font-bold text-gray-800">{t('room.total')}</span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(calculateVAT().totalWithVAT)}₫
-                    </span>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phòng:</span>
+                      <span className="font-semibold">{room.number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">{t('payment.rentalType')}:</span>
+                      <span className="font-semibold">
+                        {room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Check-in:</span>
+                      <span className="font-semibold">{formatDate(room.guest?.checkInDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Check-out:</span>
+                      <span className="font-semibold">{formatDate(checkOutDate || room.guest?.checkOutDate)}</span>
+                    </div>
                   </div>
+                </Card>
 
-                  {/* Payment Method */}
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-sm text-gray-600">{t('payment.paymentMethodLabel')}:</span>
-                    <span className="font-semibold flex items-center gap-2">
-                      {getPaymentMethodIcon(paymentMethod)}
-                      {getPaymentMethodLabel(paymentMethod)}
-                    </span>
-                  </div>
+                {/* Itemized Charges */}
+                <Card className="p-4">
+                  <h3 className="font-semibold text-gray-800 mb-3">{t('payment.paymentDetails')}</h3>
 
-                  {/* VietQR Code Section - Premium only */}
-                  {canGenerateQR && hotel?.bankAccount && getVietQRUrl() && (
-                    <div className="qr-section">
-                      <div className="qr-container-no-print flex flex-col items-center space-y-2 pt-4">
-                        <p className="text-xs text-gray-600 text-center">
-                          {t('payment.qrCodeLabel')}
+                  <div className="space-y-2 text-sm">
+                    {/* Room Charge */}
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-gray-700">
+                          {t('common.room')} ({t('payment.beforeVAT')})
                         </p>
-                        <div className="bg-white p-2 rounded border border-gray-200">
+                        <p className="text-xs text-gray-500">
+                          {room.guest?.isHourly
+                            ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
+                            : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
+                          }
+                        </p>
+                      </div>
+                      <span className="font-semibold text-gray-800">
+                        {formatCurrency(amount)}₫
+                      </span>
+                    </div>
+
+                    {/* VAT */}
+                    {(() => {
+                      const vatCalc = calculateVAT();
+                      return (
+                        <div className="flex justify-between items-center text-gray-600">
+                          <p>VAT (8%)</p>
+                          <span className="font-semibold">
+                            {formatCurrency(vatCalc.vatAmount)}₫
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    <Separator className="my-3" />
+
+                    {/* Total */}
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-lg font-bold text-gray-800">{t('room.total')}</span>
+                      <span className="text-2xl font-bold text-blue-600">
+                        {formatCurrency(calculateVAT().totalWithVAT)}₫
+                      </span>
+                    </div>
+
+                    {/* Payment Method */}
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-sm text-gray-600">{t('payment.paymentMethodLabel')}:</span>
+                      <span className="font-semibold flex items-center gap-2">
+                        {getPaymentMethodIcon(paymentMethod)}
+                        {getPaymentMethodLabel(paymentMethod)}
+                      </span>
+                    </div>
+
+                    {/* VietQR Code Section - Premium only */}
+                    {canGenerateQR && hotel?.bankAccount && getVietQRUrl() && (
+                      <div className="qr-section">
+                        <div className="qr-container-no-print flex flex-col items-center space-y-2 pt-4">
+                          <p className="text-xs text-gray-600 text-center">
+                            {t('payment.qrCodeLabel')}
+                          </p>
+                          <div className="bg-white p-2 rounded border border-gray-200">
+                            <img
+                              src={getVietQRUrl()!}
+                              alt="VietQR Payment Code"
+                              className="w-32 h-32 mx-auto"
+                              style={{ imageRendering: 'crisp-edges' }}
+                            />
+                          </div>
+                          {hotel.bankAccount.bankName && (
+                            <p className="text-xs text-gray-500 text-center">
+                              {hotel.bankAccount.bankName}
+                            </p>
+                          )}
+                          {hotel.bankAccount.accountNumber && (
+                            <p className="text-xs text-gray-500 text-center font-mono">
+                              {hotel.bankAccount.accountNumber}
+                            </p>
+                          )}
+                          {hotel.bankAccount.accountHolder && (
+                            <p className="text-xs text-gray-500 text-center">
+                              {hotel.bankAccount.accountHolder}
+                            </p>
+                          )}
+                        </div>
+                        {/* QR image only for print */}
+                        <div className="qr-print-only hidden">
                           <img
                             src={getVietQRUrl()!}
                             alt="VietQR Payment Code"
-                            className="w-32 h-32 mx-auto"
-                            style={{ imageRendering: 'crisp-edges' }}
+                            className="qr-code-print"
                           />
                         </div>
-                        {hotel.bankAccount.bankName && (
-                          <p className="text-xs text-gray-500 text-center">
-                            {hotel.bankAccount.bankName}
-                          </p>
-                        )}
-                        {hotel.bankAccount.accountNumber && (
-                          <p className="text-xs text-gray-500 text-center font-mono">
-                            {hotel.bankAccount.accountNumber}
-                          </p>
-                        )}
-                        {hotel.bankAccount.accountHolder && (
-                          <p className="text-xs text-gray-500 text-center">
-                            {hotel.bankAccount.accountHolder}
-                          </p>
-                        )}
                       </div>
-                      {/* QR image only for print */}
-                      <div className="qr-print-only hidden">
-                        <img
-                          src={getVietQRUrl()!}
-                          alt="VietQR Payment Code"
-                          className="qr-code-print"
-                        />
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </Card>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 sm:gap-3 pt-2 no-print">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep('select')}
+                    className="flex-1 text-sm sm:text-base py-4 sm:py-6"
+                  >
+                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                    <span className="hidden sm:inline">{t('payment.back')}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePrintReceipt}
+                    className="text-sm sm:text-base py-4 sm:py-6 px-3 sm:px-4"
+                  >
+                    <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Button>
+                  <Button
+                    onClick={completePayment}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
+                  >
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                    {t('payment.confirmPayment')}
+                  </Button>
                 </div>
-              </Card>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2 sm:gap-3 pt-2 no-print">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setStep('select')}
-                  className="flex-1 text-sm sm:text-base py-4 sm:py-6"
-                >
-                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                  <span className="hidden sm:inline">{t('payment.back')}</span>
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={handlePrintReceipt}
-                  className="text-sm sm:text-base py-4 sm:py-6 px-3 sm:px-4"
-                >
-                  <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
-                <Button 
-                  onClick={completePayment}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
-                >
-                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                  {t('payment.confirmPayment')}
-                </Button>
+                <p className="text-center text-xs text-gray-600 pt-2">
+                  {t('payment.thankYou')}
+                </p>
               </div>
-
-              <p className="text-center text-xs text-gray-500 pt-2">
-                {t('payment.thankYou')}
-              </p>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

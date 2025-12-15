@@ -7,14 +7,14 @@ export const en = {
   'header.search': 'Search',
   'header.language': 'Language',
   'header.roomConfig': 'Room Configuration',
-  
+
   // Room Status
   'status.vacant-clean': 'Vacant - Clean',
   'status.occupied': 'Occupied',
   'status.vacant-dirty': 'Vacant - Dirty',
   'status.due-out': 'Due Out',
   'status.out-of-order': 'Out of Order',
-  
+
   // Actions
   'action.checkin': 'Check-in',
   'action.checkout': 'Check-out',
@@ -24,13 +24,13 @@ export const en = {
   'action.confirm': 'Confirm',
   'action.back': 'Back',
   'action.close': 'Close',
-  
+
   // Search
   'search.title': 'Search Rooms',
   'search.placeholder': 'Enter room number, guest name, phone...',
   'search.noResults': 'No results found',
   'search.results': 'Search Results',
-  
+
   // Common
   'common.room': 'Room',
   'common.guest': 'Guest',
@@ -39,7 +39,7 @@ export const en = {
   'common.price': 'Price',
   'common.total': 'Total',
   'common.or': 'or',
-  
+
   // Dashboard
   'dashboard.manage': 'Manage',
   'dashboard.totalRooms': 'Total Rooms',
@@ -53,7 +53,7 @@ export const en = {
   'dashboard.filteringOccupied': 'Filtering occupied rooms',
   'dashboard.filteringVacant': 'Filtering vacant rooms',
   'dashboard.helpTitle': 'User Guide',
-  
+
   // Room Status Labels
   'room.hourly': 'Hour',
   'room.daily': 'Day',
@@ -61,7 +61,7 @@ export const en = {
   'room.vacant': 'Vacant',
   'room.hourlyRate': 'Hour',
   'room.dailyRate': 'Day',
-  
+
   // Building
   'building.rooms': 'rooms',
   'building.default': 'Default',
@@ -75,41 +75,41 @@ export const en = {
   'building.name': 'Building Name',
   'building.namePlaceholder': 'Enter building name',
   'building.nameRequired': 'Building name is required',
-  
+
   // Floor
   'floor.floor': 'Floor',
   'floor.occupiedCount': 'occupied',
   'floor.vacantCount': 'vacant',
   'floor.deleteTitle': 'Delete Floor',
-  
+
   // Room
   'room.deleteTitle': 'Delete Room',
-  
+
   // Errors
   'error.cannotDeleteOccupiedRoom': 'Cannot delete room with guests. Please check out first.',
   'error.cannotDeleteBuildingWithRooms': 'Cannot delete building with rooms. Please delete or move rooms to another building first.',
   'error.cannotDeleteFloorWithGuests': 'Cannot delete floor with guests. Please check out first.',
-  
+
   // Empty States
   'empty.noRooms': 'No rooms yet',
   'empty.addFloorAndRooms': 'Add floors and rooms to get started',
-  
+
   // Hints
   'hint.deleteHint': 'Click X button on room/floor to delete',
-  
+
   // FAB Menu
   'fab.addBuilding': 'Add New Building',
   'fab.addFloor': 'Add New Floor',
   'fab.addRoom': 'Add Room',
   'fab.addFloorOrRoom': 'Add Floor/Room',
-  
+
   // Legend
   'legend.title': 'Legend',
   'legend.hourlyRent': 'Hourly Rent',
   'legend.dailyRent': 'Daily Rent',
   'legend.needsCleaning': 'Needs Cleaning',
   'legend.vacantRoom': 'Vacant Room',
-  
+
   // Delete Dialog
   'delete.confirm': 'Confirm Delete',
   'delete.confirmMessage': 'Are you sure you want to delete',
@@ -119,13 +119,13 @@ export const en = {
   'delete.cancel': 'Cancel',
   'delete.confirmButton': 'Delete',
   'delete.success': 'Deleted',
-  
+
   // AppMenu
   'menu.main': 'Main Menu',
   'menu.roomMap': 'Room Map',
   'menu.configHotel': 'Configuration',
   'menu.configBoardingHouse': 'Boarding House Configuration',
-  'menu.configGuestHouse': 'Guest House Configuration',
+  'menu.configGuestHouse': 'Guest House Configurations',
   'menu.bankAccount': 'Bank Account',
   'menu.addStaff': 'Add Staff',
   'menu.staffList': 'Staff List',
@@ -148,7 +148,7 @@ export const en = {
   'menu.phoneNumberPlaceholder': 'e.g., 0901234567',
   'menu.email': 'Email',
   'menu.emailPlaceholder': 'e.g., hotel@example.com',
-  
+
   // Add Dialogs
   'add.roomTitle': 'Add New Room',
   'add.roomTitleBoarding': 'Add New Boarding Room',
@@ -254,7 +254,7 @@ export const en = {
   'login.businessModel.hotel': 'Hotel',
   'login.businessModel.guesthouse': 'Guest House',
   'login.businessModel.boarding-house': 'Boarding House',
-  
+
   // Room Dialog
   'room.manageRoom': 'Manage room information and check-in/check-out guests',
   'room.info': 'Info',
@@ -303,7 +303,9 @@ export const en = {
   'room.errorPriceDaily': 'Daily price must be a positive number',
   'room.errorPriceHourly': 'Hourly price must be a non-negative number',
   'room.updateSuccess': 'Room information updated',
-  
+  'room.errorCheckOutBeforeCheckIn': 'Check-out must be after check-in',
+  'room.errorCheckOutAfterOriginal': 'Check-out cannot be later than original',
+
   // Payment Dialog
   'payment.selectMethod': 'Select Payment Method',
   'payment.selectMethodDescription': 'Choose payment method for customer',
@@ -352,7 +354,7 @@ export const en = {
   'payment.confirmPayment': 'Confirm Payment',
   'payment.thankYou': 'Thank you! See you again! 🙏',
   'payment.qrCodeLabel': 'Scan QR code to transfer',
-  
+
   // Revenue Dialog
   'revenue.title': 'Revenue Report',
   'revenue.description': 'Track revenue by day, month, year',
@@ -382,7 +384,7 @@ export const en = {
   'revenue.clearReports': 'Clear Reports',
   'revenue.clearReportsDescription': 'Select the period you want to clear:',
   'revenue.clear': 'Clear',
-  
+
   // Bank Account Management
   'bank.title': 'Bank Account',
   'bank.description': 'Configure bank account information to receive payments from guests',
@@ -412,7 +414,7 @@ export const en = {
   'bank.updateSuccess': 'Bank account information updated successfully!',
   'bank.invalidBankSelection': 'Please select a valid bank',
   'bank.noBanksFound': 'No banks found',
-  
+
   // Export Report Buttons
   'export.noData': 'No data to export',
   'export.excelSuccess': '✅ Excel export successful!',
@@ -422,7 +424,7 @@ export const en = {
   'export.excel': 'Export Excel',
   'export.pdf': 'Export PDF',
   'export.premiumRequired': 'Export to Excel requires Premium subscription',
-  
+
   // Help Dialog
   'help.guesthouseTitle': 'User Guide - Guest House',
   'help.boardingTitle': 'User Guide - Boarding House',
@@ -504,7 +506,7 @@ export const en = {
   'help.tip4Guesthouse': 'Suitable for non-tech-savvy users',
   'help.needMoreHelp': 'Need more help?',
   'help.changeModel': 'You can return to model selection screen using "Change Model" button on top right header',
-  
+
   // Invoice History Dialog
   'invoiceHistory.title': 'Invoice History',
   'invoiceHistory.description': 'View, search and manage all issued invoices',
@@ -525,7 +527,7 @@ export const en = {
   'invoiceHistory.totalValue': 'Total value:',
   'invoiceHistory.retail': 'Retail customer',
   'invoiceHistory.room': 'Room',
-  
+
   // Invoice PDF
   'invoicePDF.print': 'Print Invoice',
   'invoicePDF.download': 'Download PDF',
@@ -553,7 +555,7 @@ export const en = {
   'invoicePDF.creatorSignatureNote': '(Sign, print full name)',
   'invoicePDF.thankYou': 'Thank you for using our service!',
   'invoicePDF.autoGenerated': 'Invoice automatically generated from hotel management system',
-  
+
   // Invoice Settings Dialog
   'invoiceSettings.title': 'Tax & Invoice Configuration',
   'invoiceSettings.description': 'Configure necessary information to create electronic invoices for customers',

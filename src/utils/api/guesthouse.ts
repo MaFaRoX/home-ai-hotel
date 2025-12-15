@@ -345,6 +345,14 @@ export const roomApi = {
     const response = await api.post<{ room: BackendRoom }>(`/guesthouse/rooms/${roomId}/clean`);
     return convertRoom(response.room);
   },
+
+  updateGuest: async (roomId: string, data: {
+    checkOutDate?: string;
+    totalAmount?: number;
+  }): Promise<Room> => {
+    const response = await api.put<{ room: BackendRoom }>(`/guesthouse/rooms/${roomId}/guest`, data);
+    return convertRoom(response.room);
+  },
 };
 
 // Payment API
