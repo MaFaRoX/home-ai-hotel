@@ -26,7 +26,6 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
   const { maxRooms } = useSubscription({ appSlug: 'guesthouse' });
   const [selectedBuildingId, setSelectedBuildingId] = useState(buildingId || '');
   const [floorNumber, setFloorNumber] = useState<number>(1);
-  const [floorName, setFloorName] = useState<string>('');
   const [numberOfRooms, setNumberOfRooms] = useState<number>(10);
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
 
@@ -46,7 +45,6 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
       const maxFloor = buildingFloors.length > 0 ? Math.max(...buildingFloors) : 0;
       const nextFloor = maxFloor + 1;
       setFloorNumber(nextFloor);
-      setFloorName(`${t('add.floorNumber')} ${nextFloor}`);
       setNumberOfRooms(10);
     }
   }, [open, rooms, selectedBuildingId]);
@@ -78,8 +76,8 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
     }
 
     // Check if floor already exists in the selected building
-    const floorExists = rooms.some(r => 
-      r.floor === floorNumber && 
+    const floorExists = rooms.some(r =>
+      r.floor === floorNumber &&
       (r.buildingId || 'default') === selectedBuildingId
     );
     if (floorExists) {
@@ -101,7 +99,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
 
     for (let i = 1; i <= numberOfRooms; i++) {
       const roomNumber = `${floorNumber}${i.toString().padStart(2, '0')}`; // e.g., 201, 202, 203...
-      
+
       const newRoom: Room = {
         id: `room-${Date.now()}-${i}`,
         number: roomNumber,
@@ -178,7 +176,6 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
               onChange={(e) => {
                 const value = parseInt(e.target.value);
                 setFloorNumber(value);
-                setFloorName(`${t('add.floorNumber')} ${value}`);
               }}
               className="text-lg"
               required
@@ -188,23 +185,6 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
             </p>
           </div>
 
-          {/* Floor Name (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="floorName" className="text-base">
-              {t('add.floorName')}
-            </Label>
-            <Input
-              id="floorName"
-              type="text"
-              value={floorName}
-              onChange={(e) => setFloorName(e.target.value)}
-              placeholder={t('add.floorNamePlaceholder')}
-              className="text-lg"
-            />
-            <p className="text-sm text-gray-500">
-              {t('add.floorNameHint')}
-            </p>
-          </div>
 
           {/* Number of Rooms */}
           <div className="space-y-2">
@@ -230,7 +210,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm font-semibold text-blue-900 mb-2">🔍 {t('add.preview')}:</p>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• <strong>{t('add.previewFloor')}:</strong> {floorNumber} ({floorName})</li>
+              <li>• <strong>{t('add.previewFloor')}:</strong> {t('add.floorNumber')} {floorNumber}</li>
               <li>• <strong>{t('add.previewRooms')}:</strong> {numberOfRooms} {t('building.rooms')}</li>
               <li>• <strong>{t('add.previewRoomNumbers')}:</strong> {floorNumber}01, {floorNumber}02, ... {floorNumber}{numberOfRooms.toString().padStart(2, '0')}</li>
               <li>• <strong>{t('add.previewDefaultPrice')}:</strong> 300,000₫/{t('room.daily').toLowerCase()}, 50,000₫/{t('room.hourly').toLowerCase()}</li>
@@ -257,8 +237,8 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
           </div>
         </form>
       </DialogContent>
-      <PremiumDialog 
-        open={showPremiumDialog} 
+      <PremiumDialog
+        open={showPremiumDialog}
         onOpenChange={setShowPremiumDialog}
         onUpgradeSuccess={() => setShowPremiumDialog(false)}
       />

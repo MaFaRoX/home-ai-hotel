@@ -17,12 +17,12 @@ interface SubscriptionStatusProps {
 export function SubscriptionStatus({ appSlug = 'guesthouse', className }: SubscriptionStatusProps) {
   const { t } = useLanguage();
   // Use subscription from AppContext (fetched once on login)
-  const { subscription: contextSubscription, loading: appLoading, refreshSubscription } = useApp();
+  const { subscription: contextSubscription, isPremium, isGuestMode, loading: appLoading, refreshSubscription } = useApp();
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
 
   // Filter subscription by appSlug if needed
-  const subscription = contextSubscription && contextSubscription.appSlug === appSlug 
-    ? contextSubscription 
+  const subscription = contextSubscription && contextSubscription.appSlug === appSlug
+    ? contextSubscription
     : null;
 
   const handleUpgradeSuccess = async () => {
@@ -35,6 +35,29 @@ export function SubscriptionStatus({ appSlug = 'guesthouse', className }: Subscr
       <Card className={`p-3 bg-gray-50 border-gray-200 ${className || ''}`}>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">{t('common.loading' as any) || 'Loading subscription...'}</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (isGuestMode) {
+    return (
+      <Card className={`p-3 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 ${className || ''}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-purple-600" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">
+                  Demo Mode
+                </span>
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                  Premium Enabled
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">All features unlocked for trial</p>
+            </div>
+          </div>
         </div>
       </Card>
     );
@@ -90,7 +113,6 @@ export function SubscriptionStatus({ appSlug = 'guesthouse', className }: Subscr
     );
   }
 
-  const isPremium = subscription.planSlug === 'premium';
   const maxRooms = subscription.features.max_rooms as number | undefined;
 
   return (

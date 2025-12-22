@@ -100,7 +100,20 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       const hours = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60));
       return (room.hourlyRate || 0) * Math.max(1, hours);
     } else {
-      const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate days based on 12:00 PM boundaries
+      // Any stay crosses a 12:00 PM marker counts as a new day
+      let noon = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate(), 12, 0, 0, 0);
+      if (noon <= checkIn) {
+        noon.setDate(noon.getDate() + 1);
+      }
+
+      let noonCrossedCount = 0;
+      while (noon < checkOut) {
+        noonCrossedCount++;
+        noon.setDate(noon.getDate() + 1);
+      }
+
+      const days = noonCrossedCount + 1;
       return room.price * Math.max(1, days);
     }
   };
@@ -176,6 +189,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       checkOut.setTime(checkOut.getTime() + (hoursToAdd * 60 * 60 * 1000));
     } else {
       checkOut.setDate(checkOut.getDate() + 1);
+      checkOut.setHours(12, 0, 0, 0);
     }
 
     // Format as local datetime for datetime-local input
@@ -193,7 +207,20 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
     } else {
       const checkIn = new Date(checkInDate);
       const checkOut = new Date(checkOutDate);
-      const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Calculate days based on 12:00 PM boundaries
+      let noon = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate(), 12, 0, 0, 0);
+      if (noon <= checkIn) {
+        noon.setDate(noon.getDate() + 1);
+      }
+
+      let noonCrossedCount = 0;
+      while (noon < checkOut) {
+        noonCrossedCount++;
+        noon.setDate(noon.getDate() + 1);
+      }
+
+      const days = noonCrossedCount + 1;
       return room.price * Math.max(1, days);
     }
   };
@@ -212,6 +239,14 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       return;
     }
 
+    const checkInTime = new Date(checkInDate).getTime();
+    const checkOutTime = new Date(checkOutDate).getTime();
+
+    if (checkOutTime <= checkInTime) {
+      toast.error(t('room.errorCheckOutBeforeCheckIn'));
+      return;
+    }
+
     const total = calculateTotal();
 
     try {
@@ -219,8 +254,8 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
         name: guestName.trim(),
         phone: guestPhone.trim() || undefined,
         email: '',
-        checkInDate: checkInDate,
-        checkOutDate: checkOutDate,
+        checkInDate: new Date(checkInDate).toISOString(),
+        checkOutDate: new Date(checkOutDate).toISOString(),
         totalAmount: total,
         isHourly: rentalType === 'hourly',
         checkedInBy: user?.name || user?.email,
@@ -257,7 +292,10 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       }
 
       // Use edited checkout date and recalculated total
-      const finalCheckOutDate = editedGuestCheckOutDate || currentRoom.guest.checkOutDate;
+      // If using edited date (local string), convert to ISO (UTC). If using original (ISO UTC), keep as is.
+      const finalCheckOutDate = editedGuestCheckOutDate
+        ? new Date(editedGuestCheckOutDate).toISOString()
+        : currentRoom.guest.checkOutDate;
       const finalTotal = calculateGuestTotal();
 
       // Update guest info in backend if checkout date or total changed

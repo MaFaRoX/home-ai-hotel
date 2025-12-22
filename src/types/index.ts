@@ -161,4 +161,5 @@ export interface Hotel {
   taxCode?: string;
   phoneNumber?: string;
   email?: string;
+  vatPercentage?: number;
 }

@@ -14,21 +14,23 @@ interface UseSubscriptionReturn {
   maxBuildings: number; // -1 means unlimited, otherwise defaults to 1 for free plan
   canExportReports: boolean;
   hasAdvancedReports: boolean;
+  isPremium: boolean;
 }
 
 export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptions = {}): UseSubscriptionReturn {
   // Use subscription from AppContext (fetched once on login)
-  const { subscription: contextSubscription, isPremium: contextIsPremium, loading: appLoading } = useApp();
-  
+  const { subscription: contextSubscription, isPremium: contextIsPremium, isGuestMode, loading: appLoading } = useApp();
+
   // Filter subscription by appSlug if needed (for multi-app support)
-  const subscription = contextSubscription && contextSubscription.appSlug === appSlug 
-    ? contextSubscription 
+  const subscription = contextSubscription && contextSubscription.appSlug === appSlug
+    ? contextSubscription
     : null;
-  
+
   // Loading is false once app has loaded (subscription is fetched during login)
   const loading = appLoading;
 
   const hasFeature = (feature: string): boolean => {
+    if (isGuestMode) return true;
     if (!subscription || subscription.status !== 'active') {
       return false;
     }
@@ -40,6 +42,12 @@ export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptio
   };
 
   const getFeature = <T = unknown>(feature: string): T | undefined => {
+    if (isGuestMode) {
+      // Return "premium-like" values for common features in guest mode
+      if (feature === 'max_rooms' || feature === 'max_buildings') return -1 as any;
+      if (feature === 'export_reports' || feature === 'advanced_reports') return true as any;
+      return undefined;
+    }
     // Return feature value if subscription exists, otherwise undefined
     if (!subscription || subscription.status !== 'active') {
       return undefined;
@@ -50,11 +58,11 @@ export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptio
   // Free tier: max 8 rooms, max 1 building
   // Premium: unlimited (-1)
   // Use isPremium from context (already calculated in AppContext)
-  const isPremium = contextIsPremium && subscription?.appSlug === appSlug;
-  const maxRooms = isPremium 
+  const isPremium = isGuestMode || (contextIsPremium && subscription?.appSlug === appSlug);
+  const maxRooms = isPremium
     ? -1 // Unlimited for premium
     : (subscription?.features.max_rooms as number | undefined) ?? 8; // Default to 8 for free
-  
+
   const maxBuildings = isPremium
     ? -1 // Unlimited for premium
     : (subscription?.features.max_buildings as number | undefined) ?? 1; // Default to 1 for free
@@ -71,6 +79,7 @@ export function useSubscription({ appSlug = 'guesthouse' }: UseSubscriptionOptio
     maxBuildings,
     canExportReports,
     hasAdvancedReports,
+    isPremium,
   };
 }
 

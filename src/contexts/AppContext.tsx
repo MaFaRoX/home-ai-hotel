@@ -20,6 +20,7 @@ interface AppContextType {
   loading: boolean;
   subscription: Subscription | null;
   isPremium: boolean;
+  isGuestMode: boolean;
   hasUsedFreeTrial: boolean;
   setBusinessModel: (model: BusinessModel | null) => void;
   login: (username: string, password: string) => Promise<void>;
@@ -34,7 +35,7 @@ interface AppContextType {
   markRoomCleaned: (roomId: string) => Promise<void>;
   addStaff: (email: string, name: string, role: 'receptionist' | 'housekeeping') => Promise<void>;
   setupHotel: (hotelName: string, adminEmail: string, adminName: string, businessModel: BusinessModel) => Promise<void>;
-  updateHotelInfo: (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string) => Promise<void>;
+  updateHotelInfo: (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string, vatPercentage?: number) => Promise<void>;
   updateBankAccount: (bankAccount: { bankName: string; bankCode: string; accountNumber: string; accountHolder: string }) => Promise<void>;
   addPayment: (payment: Payment, roomId?: string) => Promise<void>;
   clearPaymentsByPeriod: (period: 'today' | 'month' | 'year' | 'all') => Promise<void>;
@@ -62,6 +63,13 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   // Subscription state (following CV_Online pattern)
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isPremium, setIsPremium] = useState(false);
+
+  // Sync isPremium with isGuestMode
+  useEffect(() => {
+    if (isGuestMode) {
+      setIsPremium(true);
+    }
+  }, [isGuestMode]);
   const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState<boolean>(true);
 
   // Auth state management (following CV_Online pattern)
@@ -1332,16 +1340,16 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     // No need to refresh hotels, buildings, staff, or payments - they haven't changed
   };
 
-  const updateHotelInfo = async (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string) => {
+  const updateHotelInfo = async (name: string, address: string, taxCode?: string, phoneNumber?: string, email?: string, vatPercentage?: number) => {
     if (!hotel) return;
 
     if (isGuestMode) {
-      setHotel({ ...hotel, name, address, taxCode, phoneNumber, email });
+      setHotel({ ...hotel, name, address, taxCode, phoneNumber, email, vatPercentage });
       return;
     }
 
     try {
-      const updated = await hotelApi.update(hotel.id, { name, address, taxCode, phoneNumber, email });
+      const updated = await hotelApi.update(hotel.id, { name, address, taxCode, phoneNumber, email, vatPercentage });
       setHotel(updated);
     } catch (error) {
       const handled = await handleApiError(error);
@@ -1475,6 +1483,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         loading,
         subscription,
         isPremium,
+        isGuestMode,
         hasUsedFreeTrial,
         setBusinessModel,
         login,

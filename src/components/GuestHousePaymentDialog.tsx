@@ -43,12 +43,11 @@ export function GuestHousePaymentDialog({
 }: GuestHousePaymentDialogProps) {
   const { hotel } = useApp();
   const { t } = useLanguage();
-  const { subscription } = useSubscription({ appSlug: 'guesthouse' });
+  const { isPremium } = useSubscription({ appSlug: 'guesthouse' });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [step, setStep] = useState<'select' | 'receipt'>('select');
 
   // Check if QR code feature is available (Premium only)
-  const isPremium = subscription?.status === 'active' && subscription.planSlug === 'premium';
   const canGenerateQR = isPremium;
 
   const formatCurrency = (value: number) => {
@@ -71,8 +70,9 @@ export function GuestHousePaymentDialog({
   };
 
   // Calculate VAT breakdown
+  // Calculate VAT breakdown
   const calculateVAT = () => {
-    const vatRate = 8; // 8% VAT
+    const vatRate = hotel?.vatPercentage || 0;
     const amountBeforeVAT = amount;
     const vatAmount = Math.round(amountBeforeVAT * (vatRate / 100));
     const totalWithVAT = amountBeforeVAT + vatAmount;
@@ -557,12 +557,15 @@ export function GuestHousePaymentDialog({
                       </span>
                     </div>
 
-                    {/* VAT */}
+                    {/* VAT (Only if > 0) */}
                     {(() => {
+                      const vatRate = hotel?.vatPercentage || 0;
+                      if (vatRate <= 0) return null;
+
                       const vatCalc = calculateVAT();
                       return (
                         <div className="flex justify-between items-center text-gray-600">
-                          <p>VAT (8%)</p>
+                          <p>VAT ({vatRate}%)</p>
                           <span className="font-semibold">
                             {formatCurrency(vatCalc.vatAmount)}₫
                           </span>

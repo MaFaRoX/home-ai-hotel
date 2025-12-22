@@ -47,6 +47,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [taxCode, setTaxCode] = useState(hotel?.taxCode || '');
   const [phoneNumber, setPhoneNumber] = useState(hotel?.phoneNumber || '');
   const [email, setEmail] = useState(hotel?.email || '');
+  const [vatPercentage, setVatPercentage] = useState(hotel?.vatPercentage?.toString() || '0');
 
   const isAdmin = user?.role === 'admin';
 
@@ -58,6 +59,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       setTaxCode(hotel.taxCode || '');
       setPhoneNumber(hotel.phoneNumber || '');
       setEmail(hotel.email || '');
+      setVatPercentage(hotel.vatPercentage?.toString() || '0');
     }
   }, [hotel]);
 
@@ -301,7 +303,12 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
             onSubmit={async (e) => {
               e.preventDefault();
               try {
-                await updateHotelInfo(hotelName, hotelAddress, taxCode || undefined, phoneNumber || undefined, email || undefined);
+                const vat = parseInt(vatPercentage);
+                if (isNaN(vat) || vat < 0 || vat > 100) {
+                  toast.error(t('menu.vatError'));
+                  return;
+                }
+                await updateHotelInfo(hotelName, hotelAddress, taxCode || undefined, phoneNumber || undefined, email || undefined, vat);
                 toast.success(t('menu.hotelUpdated'));
                 setShowHotelConfig(false);
               } catch (error) {
@@ -357,6 +364,19 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('menu.emailPlaceholder')}
               />
+            </div>
+            <div>
+              <Label htmlFor="vat-percentage">{t('menu.vatPercentage')}</Label>
+              <Input
+                id="vat-percentage"
+                type="number"
+                min="0"
+                max="100"
+                value={vatPercentage}
+                onChange={(e) => setVatPercentage(e.target.value)}
+                placeholder="10"
+              />
+              <p className="text-xs text-gray-500 mt-1">{t('menu.vatPercentageHint')}</p>
             </div>
             <Button type="submit" className="w-full">
               {t('menu.saveChanges')}
