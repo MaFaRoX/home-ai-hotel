@@ -2,8 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Room, PaymentMethod, IncidentalCharge, RoomType, RoomStatus, Payment } from '../types';
+import { Room, PaymentMethod, IncidentalCharge, RoomType, RoomStatus, Payment, HotelService, GuestService } from '../types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -27,13 +37,17 @@ import {
   Layers,
   Building2,
   Bed,
-  DoorOpen
+  DoorOpen,
+  Coffee,
+  Plus,
+  Minus,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GuestHousePaymentDialog } from './GuestHousePaymentDialog';
 import { useLanguage } from '../contexts/LanguageContext';
 import { MoneyInput } from './MoneyInput';
-import { roomApi } from '../utils/api/guesthouse';
+import { roomApi, serviceApi } from '../utils/api/guesthouse';
 
 interface GuestHouseRoomDialogProps {
   room: Room;
@@ -42,29 +56,55 @@ interface GuestHouseRoomDialogProps {
 }
 
 export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDialogProps) {
-  const { updateRoom, user, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms } = useApp();
+  const { updateRoom, user, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms, hotelServices, loadHotelServices, guestServices, loadAllGuestServices } = useApp();
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'info' | 'checkin'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'checkin' | 'services'>('info');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Room editing state (for empty rooms)
   const [isEditing, setIsEditing] = useState(false);
+
+  // Current display values (updated after save)
+  const [currentRoomType, setCurrentRoomType] = useState<Room['type']>(room.type);
+  const [currentPrice, setCurrentPrice] = useState(room.price);
+  const [currentHourlyRate, setCurrentHourlyRate] = useState(room.hourlyRate || 0);
+  const [currentHourlyBasePrice, setCurrentHourlyBasePrice] = useState(room.hourlyBasePrice || 0);
+  const [currentOvernightPrice, setCurrentOvernightPrice] = useState(room.overnightPrice || 0);
+  const [currentStatus, setCurrentStatus] = useState<Room['status']>(room.status);
+
+  // Editing values
   const [editedRoomType, setEditedRoomType] = useState<Room['type']>(room.type);
   const [editedPrice, setEditedPrice] = useState(room.price.toString());
   const [editedHourlyRate, setEditedHourlyRate] = useState((room.hourlyRate || 0).toString());
+  const [editedHourlyBasePrice, setEditedHourlyBasePrice] = useState((room.hourlyBasePrice || 0).toString());
+  const [editedOvernightPrice, setEditedOvernightPrice] = useState((room.overnightPrice || 0).toString());
   const [editedStatus, setEditedStatus] = useState<Room['status']>(room.status);
 
   // Check-in form
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
-  const [rentalType, setRentalType] = useState<'hourly' | 'daily'>('daily');
-  const [hours, setHours] = useState('3');
+  const [guestIdNumber, setGuestIdNumber] = useState('');
+  const [guestAddress, setGuestAddress] = useState('');
+  const [guestNationality, setGuestNationality] = useState('');
+  const [guestPassportNumber, setGuestPassportNumber] = useState('');
+  const [rentalType, setRentalType] = useState<'hourly' | 'daily' | 'overnight'>('daily');
+  const [hours, setHours] = useState('2'); // Minimum 2 hours for hourly rental
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   // State for editing guest checkout date (when room is occupied)
   const [editedGuestCheckOutDate, setEditedGuestCheckOutDate] = useState('');
+
+  // Services state - now filtered from context
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+  const [serviceQuantity, setServiceQuantity] = useState('1');
+
+  // Filter guest services from context by current guest ID
+  const currentGuestServices = room.guest
+    ? guestServices.filter(gs => gs.guestId === room.guest!.id)
+    : [];
 
   // Handle date picker focus/blur with delay to prevent dialog from closing
   const handleDatePickerFocus = () => {
@@ -96,9 +136,22 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
     const checkIn = new Date(room.guest.checkInDate);
     const checkOut = new Date(editedGuestCheckOutDate || room.guest.checkOutDate);
 
-    if (room.guest.isHourly) {
+    if (room.guest.rentalType === 'hourly' || room.guest.isHourly) {
       const hours = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60));
-      return (room.hourlyRate || 0) * Math.max(1, hours);
+      const actualHours = Math.max(2, hours); // Minimum 2 hours
+
+      // Two-tier pricing: base price for first 2 hours + hourly rate for additional hours
+      const basePrice = Number(currentHourlyBasePrice) || 0;
+      const hourlyRate = Number(currentHourlyRate) || 0;
+
+      if (actualHours <= 2) {
+        return basePrice;
+      } else {
+        const additionalHours = actualHours - 2;
+        return basePrice + (hourlyRate * additionalHours);
+      }
+    } else if (room.guest.rentalType === 'overnight') {
+      return Number(currentOvernightPrice || currentPrice);
     } else {
       // Calculate days based on 12:00 PM boundaries
       // Any stay crosses a 12:00 PM marker counts as a new day
@@ -114,7 +167,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       }
 
       const days = noonCrossedCount + 1;
-      return room.price * Math.max(1, days);
+      return currentPrice * Math.max(1, days);
     }
   };
 
@@ -148,26 +201,50 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
         setGuestPhone(room.guest.phone || '');
         // Initialize edited checkout date
         setEditedGuestCheckOutDate(toDateTimeLocal(room.guest.checkOutDate));
+        // Load hotel services if not loaded
+        if (hotelServices.length === 0) {
+          loadHotelServices();
+        }
       } else {
         setActiveTab('info');
         // Reset form for new check-in
         setGuestName('');
         setGuestPhone('');
+        setGuestIdNumber('');
+        setGuestAddress('');
+        setGuestNationality('');
+        setGuestPassportNumber('');
         setCheckInDate(toDateTimeLocal(new Date().toISOString()));
       }
 
       // Reset editing state and sync with room data
       setIsEditing(false);
+
+      // Update current display values
+      setCurrentRoomType(room.type);
+      setCurrentPrice(room.price);
+      setCurrentHourlyRate(room.hourlyRate || 0);
+      setCurrentHourlyBasePrice(room.hourlyBasePrice || 0);
+      setCurrentOvernightPrice(room.overnightPrice || 0);
+      setCurrentStatus(room.status);
+
+      // Update editing values
       setEditedRoomType(room.type);
       // Ensure we pass clean numeric strings to MoneyInput (remove any formatting)
       setEditedPrice(Math.round(room.price).toString());
       setEditedHourlyRate(Math.round(room.hourlyRate || 0).toString());
+      setEditedHourlyBasePrice(Math.round(room.hourlyBasePrice || 0).toString());
+      setEditedOvernightPrice(Math.round(room.overnightPrice || 0).toString());
       setEditedStatus(room.status);
 
       // Auto-calculate checkout based on rental type
       if (!room.guest) {
         updateCheckOutDate();
       }
+    } else {
+      // Reset services when dialog closes
+      setSelectedServiceId('');
+      setServiceQuantity('1');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, open]);
@@ -187,6 +264,12 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       // Add hours using milliseconds for accurate calculation
       const hoursToAdd = parseInt(hours || '3');
       checkOut.setTime(checkOut.getTime() + (hoursToAdd * 60 * 60 * 1000));
+    } else if (rentalType === 'overnight') {
+      // Overnight: Checkout at 12:00 PM next day
+      const nextDay = new Date(checkIn);
+      nextDay.setDate(nextDay.getDate() + 1);
+      nextDay.setHours(12, 0, 0, 0);
+      checkOut = nextDay;
     } else {
       checkOut.setDate(checkOut.getDate() + 1);
       checkOut.setHours(12, 0, 0, 0);
@@ -203,7 +286,20 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
 
   const calculateTotal = () => {
     if (rentalType === 'hourly') {
-      return (room.hourlyRate || 0) * parseInt(hours || '0');
+      const hoursNum = Math.max(2, parseInt(hours || '2')); // Minimum 2 hours
+
+      // Two-tier pricing: base price for first 2 hours + hourly rate for additional hours
+      const basePrice = Number(currentHourlyBasePrice) || 0;
+      const hourlyRate = Number(currentHourlyRate) || 0;
+
+      if (hoursNum <= 2) {
+        return basePrice;
+      } else {
+        const additionalHours = hoursNum - 2;
+        return basePrice + (hourlyRate * additionalHours);
+      }
+    } else if (rentalType === 'overnight') {
+      return Number(currentOvernightPrice || currentPrice);
     } else {
       const checkIn = new Date(checkInDate);
       const checkOut = new Date(checkOutDate);
@@ -221,14 +317,16 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       }
 
       const days = noonCrossedCount + 1;
-      return room.price * Math.max(1, days);
+      return currentPrice * Math.max(1, days);
     }
   };
 
   const getTotalWithIncidentals = () => {
     if (!room.guest) return 0;
-    // Use recalculated total based on edited checkout date
-    return calculateGuestTotal();
+    // Use recalculated total based on edited checkout date + services
+    const roomTotal = Number(calculateGuestTotal()) || 0;
+    const servicesTotal = Number(getServicesTotal()) || 0;
+    return roomTotal + servicesTotal;
   };
 
   const handleCheckIn = async (e: React.FormEvent) => {
@@ -247,28 +345,58 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       return;
     }
 
+    // Validate minimum 2 hours for hourly rental
+    if (rentalType === 'hourly') {
+      const hoursBooked = parseInt(hours);
+      if (hoursBooked < 2) {
+        toast.error(t('room.errorMinimum2Hours'));
+        return;
+      }
+    }
+
     const total = calculateTotal();
 
     try {
-      await checkIn(room.id, {
+      // Build additionalInfo only if at least one field has a value
+      const additionalInfo: any = {};
+      if (guestIdNumber.trim()) additionalInfo.idNumber = guestIdNumber.trim();
+      if (guestAddress.trim()) additionalInfo.address = guestAddress.trim();
+      if (guestNationality.trim()) additionalInfo.nationality = guestNationality.trim();
+      if (guestPassportNumber.trim()) additionalInfo.passportNumber = guestPassportNumber.trim();
+
+      const hasAdditionalInfo = Object.keys(additionalInfo).length > 0;
+
+      const payload = {
         name: guestName.trim(),
         phone: guestPhone.trim() || undefined,
         email: '',
         checkInDate: new Date(checkInDate).toISOString(),
         checkOutDate: new Date(checkOutDate).toISOString(),
         totalAmount: total,
-        isHourly: rentalType === 'hourly',
+        isHourly: rentalType === 'hourly', // Backward compatibility
+        rentalType: rentalType,
         checkedInBy: user?.name || user?.email,
-      });
+        ...(hasAdditionalInfo && { additionalInfo }),
+      };
 
-      toast.success(rentalType === 'hourly'
-        ? `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${hours} ${t('room.hours')})`
-        : `✅ ${t('room.checkinSuccessHourly')} ${room.number} (${t('room.checkinSuccessDaily')})`
+      await checkIn(room.id, payload);
+
+      const rentalTypeText = rentalType === 'hourly'
+        ? `${hours} ${t('room.hours')}`
+        : rentalType === 'overnight'
+          ? t('room.overnight')
+          : t('room.checkinSuccessDaily');
+
+      toast.success(`✅ ${t('room.checkinSuccessHourly')} ${room.number} (${rentalTypeText})`
       );
 
       // Reset form
       setGuestName('');
       setGuestPhone('');
+      setGuestIdNumber('');
+      setGuestAddress('');
+      setGuestNationality('');
+      setGuestPassportNumber('');
       onClose();
     } catch (error) {
       // Error already handled in AppContext
@@ -291,12 +419,13 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
         return;
       }
 
-      // Use edited checkout date and recalculated total
-      // If using edited date (local string), convert to ISO (UTC). If using original (ISO UTC), keep as is.
+      // Use edited checkout date and recalculated totals
       const finalCheckOutDate = editedGuestCheckOutDate
         ? new Date(editedGuestCheckOutDate).toISOString()
         : currentRoom.guest.checkOutDate;
-      const finalTotal = calculateGuestTotal();
+      const roomCharge = calculateGuestTotal(); // Only room charge
+      const servicesTotal = getServicesTotal(); // Services total
+      const finalTotal = roomCharge + servicesTotal; // Total including both
 
       // Update guest info in backend if checkout date or total changed
       const hasCheckOutDateChanged = finalCheckOutDate !== currentRoom.guest.checkOutDate;
@@ -305,9 +434,17 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       if (hasCheckOutDateChanged || hasTotalChanged) {
         await roomApi.updateGuest(currentRoom.id, {
           checkOutDate: finalCheckOutDate,
-          totalAmount: finalTotal,
+          totalAmount: finalTotal, // Store total with services
         });
       }
+
+      // Convert currentGuestServices to legacy Service format for payment record
+      const servicesForPayment = currentGuestServices.map(gs => ({
+        id: gs.id, // Keep the guest_service ID for reference
+        name: gs.serviceName || 'Service',
+        price: gs.unitPrice,
+        quantity: gs.quantity,
+      }));
 
       // Create payment record before checking out
       const payment: Payment = {
@@ -317,13 +454,14 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
         guestName: currentRoom.guest.name,
         checkInDate: currentRoom.guest.checkInDate,
         checkOutDate: finalCheckOutDate,
-        roomCharge: finalTotal,
+        roomCharge: roomCharge, // Only room charge
         isHourly: currentRoom.guest.isHourly ?? false,
-        services: currentRoom.guest.services || [],
+        rentalType: currentRoom.guest.rentalType || (currentRoom.guest.isHourly ? 'hourly' : 'daily'),
+        services: servicesForPayment, // New services from guest_services table
         incidentalCharges: currentRoom.guest.incidentalCharges || [],
         subtotal: finalTotal,
         vat: 0,
-        total: finalTotal,
+        total: finalTotal, // Total including services
         paymentMethod: paymentMethod,
         documentType: 'receipt',
         timestamp: new Date().toISOString(),
@@ -331,7 +469,6 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       };
 
       // Add payment first (this creates the revenue record)
-      // Use the current room ID to ensure it matches the backend
       await addPayment(payment, currentRoom.id);
 
       // Then check out (which removes the guest)
@@ -339,6 +476,20 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
 
       toast.success(`✅ ${t('room.checkoutSuccess')} ${currentRoom.number} ${t('action.payment')}`);
       setShowPaymentDialog(false);
+      onClose();
+    } catch (error) {
+      // Error already handled in AppContext
+    }
+  };
+
+  const handleCancelRoom = async () => {
+    if (!room.guest) return;
+
+    try {
+      await checkOut(room.id);
+      await markRoomCleaned(room.id);
+      toast.success(`✅ ${t('room.cancelRoom')} ${room.number}`);
+      setShowCancelConfirm(false);
       onClose();
     } catch (error) {
       // Error already handled in AppContext
@@ -359,6 +510,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
   const handleSaveRoomInfo = async () => {
     const price = parseFloat(editedPrice);
     const hourlyRate = parseFloat(editedHourlyRate);
+    const hourlyBasePrice = parseFloat(editedHourlyBasePrice);
 
     if (isNaN(price) || price <= 0) {
       toast.error(t('room.errorPriceDaily'));
@@ -370,13 +522,29 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
       return;
     }
 
+    if (isNaN(hourlyBasePrice) || hourlyBasePrice < 0) {
+      toast.error(t('room.errorPriceHourlyBase'));
+      return;
+    }
+
     try {
       await updateRoom(room.id, {
         type: editedRoomType,
         price: price,
         hourlyRate: hourlyRate > 0 ? hourlyRate : undefined,
+        hourlyBasePrice: hourlyBasePrice > 0 ? hourlyBasePrice : undefined,
+        overnightPrice: parseFloat(editedOvernightPrice) > 0 ? parseFloat(editedOvernightPrice) : undefined,
         status: editedStatus,
       });
+
+      // Update current display values immediately
+      setCurrentRoomType(editedRoomType);
+      setCurrentPrice(price);
+      setCurrentHourlyRate(hourlyRate);
+      setCurrentHourlyBasePrice(hourlyBasePrice);
+      setCurrentOvernightPrice(parseFloat(editedOvernightPrice) || 0);
+      setCurrentStatus(editedStatus);
+
       setIsEditing(false);
       toast.success(`${t('room.updateSuccess')} ${room.number}`);
     } catch (error) {
@@ -386,11 +554,13 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    // Reset to original values
-    setEditedRoomType(room.type);
-    setEditedPrice(room.price.toString());
-    setEditedHourlyRate((room.hourlyRate || 0).toString());
-    setEditedStatus(room.status);
+    // Reset to current display values (which may have been updated after last save)
+    setEditedRoomType(currentRoomType);
+    setEditedPrice(currentPrice.toString());
+    setEditedHourlyRate(currentHourlyRate.toString());
+    setEditedHourlyBasePrice(currentHourlyBasePrice.toString());
+    setEditedOvernightPrice(currentOvernightPrice.toString());
+    setEditedStatus(currentStatus);
   };
 
   const getRoomStatusColor = () => {
@@ -421,12 +591,62 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
     onClose();
   };
 
+  // Helper to get translated rental type label
+  const getRentalTypeLabel = (type?: string, isHourly?: boolean) => {
+    if (type === 'overnight') return t('room.overnight');
+    if (type === 'hourly' || isHourly) return t('room.hourly');
+    return t('room.daily');
+  };
+
+
+
+  const handleAddService = async () => {
+    if (!selectedServiceId || !room.guest) return;
+    const qty = parseInt(serviceQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error(t('room.serviceQtyError'));
+      return;
+    }
+
+    try {
+      await serviceApi.addToGuest({
+        guestId: room.guest.id,
+        serviceId: selectedServiceId,
+        quantity: qty,
+      });
+      // Refresh guest services from context
+      await loadAllGuestServices();
+      setServiceQuantity('1');
+      setSelectedServiceId('');
+      toast.success(`✅ ${t('room.serviceAdded')}`);
+    } catch (error: any) {
+      toast.error(error.message || t('room.serviceAddError'));
+    }
+  };
+
+  const handleRemoveService = async (guestServiceId: string) => {
+    try {
+      await serviceApi.removeFromGuest(guestServiceId);
+      // Refresh guest services from context
+      await loadAllGuestServices();
+      toast.success(t('room.serviceRemoved'));
+    } catch (error: any) {
+      toast.error(error.message || t('room.serviceRemoveError'));
+    }
+  };
+
+  const getServicesTotal = () => {
+    return currentGuestServices.reduce((sum, gs) => sum + Number(gs.totalPrice || 0), 0);
+  };
+
   return (
     <>
       <Dialog open={open && !showPaymentDialog} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-3 sm:p-4 mx-2 sm:mx-4">
           <DialogHeader className="pb-1 space-y-0">
-            <DialogTitle className="text-lg font-bold">Phòng {room.number} - {room.type}</DialogTitle>
+            <DialogTitle className="text-lg font-bold">
+              {t('common.room')} {room.number}
+            </DialogTitle>
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -434,9 +654,16 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
               <TabsTrigger value="info" className="text-xs">
                 {t('room.info')}
               </TabsTrigger>
-              <TabsTrigger value="checkin" disabled={!!room.guest} className="text-xs">
-                {t('room.checkin')}
-              </TabsTrigger>
+              {room.guest ? (
+                <TabsTrigger value="services" className="text-xs py-1.5 flex items-center gap-1.5">
+                  <Coffee className="w-3.5 h-3.5" />
+                  {t('room.services')}
+                </TabsTrigger>
+              ) : (
+                <TabsTrigger value="checkin" className="text-xs">
+                  {t('room.checkin')}
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Info Tab */}
@@ -446,6 +673,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                   {/* Guest Info */}
                   <Card className={`${getRoomStatusColor()} p-2 border`}>
                     <div className="space-y-2">
+                      {/* Name - Full width */}
                       <div className="flex items-center gap-2">
                         <User className="w-3 h-3 text-gray-600" />
                         <div className="flex-1">
@@ -454,12 +682,56 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                         </div>
                       </div>
 
-                      {room.guest.phone && (
+                      {/* Grid layout for other fields - 2 columns */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {room.guest.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-3 h-3 text-gray-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-gray-600">{t('room.phone')}</p>
+                              <p className="text-xs font-semibold truncate">{room.guest.phone}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {room.guest.additionalInfo?.idNumber && (
+                          <div className="flex items-center gap-2">
+                            <User className="w-3 h-3 text-gray-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-gray-600">{t('room.idNumber')}</p>
+                              <p className="text-xs font-semibold truncate">{room.guest.additionalInfo.idNumber}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {room.guest.additionalInfo?.nationality && (
+                          <div className="flex items-center gap-2">
+                            <DoorOpen className="w-3 h-3 text-gray-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-gray-600">{t('room.nationality')}</p>
+                              <p className="text-xs font-semibold truncate">{room.guest.additionalInfo.nationality}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {room.guest.additionalInfo?.passportNumber && (
+                          <div className="flex items-center gap-2">
+                            <DoorOpen className="w-3 h-3 text-gray-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-gray-600">{t('room.passportNumber')}</p>
+                              <p className="text-xs font-semibold truncate">{room.guest.additionalInfo.passportNumber}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Address - Full width if exists */}
+                      {room.guest.additionalInfo?.address && (
                         <div className="flex items-center gap-2">
-                          <Phone className="w-3 h-3 text-gray-600" />
+                          <Building2 className="w-3 h-3 text-gray-600" />
                           <div className="flex-1">
-                            <p className="text-[10px] text-gray-600">{t('room.phone')}</p>
-                            <p className="text-xs font-semibold">{room.guest.phone}</p>
+                            <p className="text-[10px] text-gray-600">{t('room.address')}</p>
+                            <p className="text-xs font-semibold">{room.guest.additionalInfo.address}</p>
                           </div>
                         </div>
                       )}
@@ -469,7 +741,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3 h-3 text-gray-600" />
                         <div className="flex-1">
-                          <p className="text-[10px] text-gray-600">Check-in</p>
+                          <p className="text-[10px] text-gray-600">{t('room.checkinDate')}</p>
                           <p className="text-[11px] font-semibold">{formatDate(room.guest.checkInDate)}</p>
                         </div>
                       </div>
@@ -493,18 +765,51 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
 
                       <Separator className="my-1" />
 
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] text-gray-600">{t('room.rentalType')}</p>
-                          <Badge variant="outline" className="text-[10px] mt-0.5 h-6 px-2 py-1">
-                            {room.guest.isHourly ? t('room.hourly') : t('room.daily')}
-                          </Badge>
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] text-gray-600">{t('room.rentalType')}</p>
+                            <Badge variant="outline" className="text-[10px] mt-0.5 h-6 px-2 py-1">
+                              {getRentalTypeLabel(room.guest.rentalType, room.guest.isHourly)}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-gray-600">{t('room.roomCharge')}</p>
+                            <p className="text-sm font-bold text-gray-700">
+                              {formatCurrency(calculateGuestTotal())}₫
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-gray-600">{t('room.totalAmount')}</p>
-                          <p className="text-base font-bold text-green-600">
-                            {formatCurrency(calculateGuestTotal())}₫
-                          </p>
+
+                        {currentGuestServices.length > 0 && (
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-[10px] text-gray-600">{t('room.services')}</p>
+                              <Badge variant="outline" className="text-[10px] mt-0.5 h-6 px-2 py-1">
+                                <Coffee className="w-3 h-3 mr-1" />
+                                {currentGuestServices.length} {currentGuestServices.length > 1 ? t('room.items') : t('room.item')}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] text-gray-600">{t('room.servicesTotal')}</p>
+                              <p className="text-sm font-bold text-blue-600">
+                                {formatCurrency(getServicesTotal())}₫
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <Separator />
+
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] text-gray-600 font-semibold">{t('room.totalAmount')}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-green-600">
+                              {formatCurrency(getTotalWithIncidentals())}₫
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -516,14 +821,24 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                     </div>
                   </Card>
 
-                  {/* Check-out Button */}
-                  <Button
-                    onClick={handleStartCheckOut}
-                    className="w-full bg-red-600 hover:bg-red-700 text-xs h-9"
-                  >
-                    <LogOut className="w-3 h-3 mr-1.5" />
-                    {t('room.checkout')}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="flex-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 text-xs h-9"
+                    >
+                      <X className="w-3 h-3 mr-1.5" />
+                      {t('room.cancelRoom')}
+                    </Button>
+                    <Button
+                      onClick={handleStartCheckOut}
+                      className="flex-[2] bg-red-600 hover:bg-red-700 text-xs h-9"
+                    >
+                      <LogOut className="w-3 h-3 mr-1.5" />
+                      {t('room.checkout')}
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -565,68 +880,68 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                     </div>
 
                     <div className="space-y-3">
-                      {/* Room Number - Read Only */}
-                      <div className="flex items-center gap-2">
-                        <DoorOpen className="w-4 h-4 text-gray-500" />
-                        <div className="flex-1">
-                          <Label className="text-[10px] text-gray-600">{t('room.roomNumber')}</Label>
-                          <p className="text-sm font-bold text-gray-800">{room.number}</p>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Room Type */}
-                      {isEditing ? (
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-gray-600 flex items-center gap-1">
-                            <Bed className="w-3 h-3" />
-                            {t('room.roomType')}
-                          </Label>
-                          <Select value={editedRoomType} onValueChange={(value) => setEditedRoomType(value as RoomType)}>
-                            <SelectTrigger className="text-xs h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Single">Single</SelectItem>
-                              <SelectItem value="Double">Double</SelectItem>
-                              <SelectItem value="Deluxe">Deluxe</SelectItem>
-                              <SelectItem value="Suite">Suite</SelectItem>
-                              <SelectItem value="Family">Family</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Room Number - Read Only */}
                         <div className="flex items-center gap-2">
-                          <Bed className="w-4 h-4 text-gray-500" />
+                          <DoorOpen className="w-4 h-4 text-gray-500" />
                           <div className="flex-1">
-                            <Label className="text-[10px] text-gray-600">{t('room.roomType')}</Label>
-                            <p className="text-sm font-semibold text-gray-800">{room.type}</p>
+                            <Label className="text-[10px] text-gray-600">{t('room.roomNumber')}</Label>
+                            <p className="text-sm font-bold text-gray-800">{room.number}</p>
                           </div>
                         </div>
-                      )}
 
-                      {/* Floor - Read Only */}
-                      <div className="flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-gray-500" />
-                        <div className="flex-1">
-                          <Label className="text-[10px] text-gray-600">{t('room.floor')}</Label>
-                          <p className="text-sm font-semibold text-gray-800">{t('room.floor')} {room.floor}</p>
-                        </div>
-                      </div>
+                        {/* Room Type */}
+                        {isEditing ? (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-gray-600 flex items-center gap-1">
+                              <Bed className="w-3 h-3" />
+                              {t('room.roomType')}
+                            </Label>
+                            <Select value={editedRoomType} onValueChange={(value) => setEditedRoomType(value as RoomType)}>
+                              <SelectTrigger className="text-xs h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Single">{t('roomType.single')}</SelectItem>
+                                <SelectItem value="Double">{t('roomType.double')}</SelectItem>
+                                <SelectItem value="Deluxe">{t('roomType.deluxe')}</SelectItem>
+                                <SelectItem value="Suite">{t('roomType.suite')}</SelectItem>
+                                <SelectItem value="Family">{t('roomType.family')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Bed className="w-4 h-4 text-gray-500" />
+                            <div className="flex-1">
+                              <Label className="text-[10px] text-gray-600">{t('room.roomType')}</Label>
+                              <p className="text-sm font-semibold text-gray-800">{t(`roomType.${currentRoomType.toLowerCase()}` as any)}</p>
+                            </div>
+                          </div>
+                        )}
 
-                      {/* Building - Read Only */}
-                      {hotel?.buildings && (
+                        {/* Floor - Read Only */}
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-gray-500" />
+                          <Layers className="w-4 h-4 text-gray-500" />
                           <div className="flex-1">
-                            <Label className="text-[10px] text-gray-600">{t('room.building')}</Label>
-                            <p className="text-sm font-semibold text-gray-800">
-                              {hotel.buildings.find(b => b.id === room.buildingId)?.name || 'N/A'}
-                            </p>
+                            <Label className="text-[10px] text-gray-600">{t('room.floor')}</Label>
+                            <p className="text-sm font-semibold text-gray-800">{t('room.floor')} {room.floor}</p>
                           </div>
                         </div>
-                      )}
+
+                        {/* Building - Read Only */}
+                        {hotel?.buildings && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-gray-500" />
+                            <div className="flex-1">
+                              <Label className="text-[10px] text-gray-600">{t('room.building')}</Label>
+                              <p className="text-sm font-semibold text-gray-800">
+                                {hotel.buildings.find(b => b.id === room.buildingId)?.name || 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Status */}
                       {isEditing ? (
@@ -648,15 +963,43 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                           <div className="flex-1">
                             <Label className="text-[10px] text-gray-600">{t('room.status')}</Label>
                             <Badge variant="outline" className="text-[10px] mt-0.5">
-                              {room.status === 'vacant-clean' ? t('room.statusVacantClean') :
-                                room.status === 'vacant-dirty' ? t('room.statusVacantDirty') :
-                                  room.status === 'out-of-order' ? t('room.statusOutOfOrder') : room.status}
+                              {currentStatus === 'vacant-clean' ? t('room.statusVacantClean') :
+                                currentStatus === 'vacant-dirty' ? t('room.statusVacantDirty') :
+                                  currentStatus === 'out-of-order' ? t('room.statusOutOfOrder') : currentStatus}
                             </Badge>
                           </div>
                         </div>
                       )}
 
                       <Separator />
+
+                      {/* Hourly Base Price (2 hours minimum) */}
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-600 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {t('room.hourlyBasePrice')}
+                          </Label>
+                          <MoneyInput
+                            id="edit-hourly-base-price"
+                            value={editedHourlyBasePrice}
+                            onChange={setEditedHourlyBasePrice}
+                            placeholder="0"
+                            className="text-xs h-8"
+                            suffix={` (2${t('room.hours').toLowerCase()})`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-700 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {t('room.hourlyBasePrice')}
+                          </span>
+                          <span className="text-sm font-bold text-purple-600">
+                            {formatCurrency(currentHourlyBasePrice)}₫ (2h)
+                          </span>
+                        </div>
+                      )}
 
                       {/* Hourly Rate */}
                       {isEditing ? (
@@ -681,7 +1024,35 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                             {t('room.hourlyPrice')}
                           </span>
                           <span className="text-sm font-bold text-blue-600">
-                            {formatCurrency(room.hourlyRate || 0)}₫/{t('room.hours').toLowerCase()}
+                            {formatCurrency(currentHourlyRate)}₫/{t('room.hours').toLowerCase()}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Overnight Price */}
+                      {isEditing ? (
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-gray-600 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {t('room.overnightPrice')}
+                          </Label>
+                          <MoneyInput
+                            id="edit-overnight-price"
+                            value={editedOvernightPrice}
+                            onChange={setEditedOvernightPrice}
+                            placeholder="0"
+                            className="text-xs h-8"
+                            suffix={`/${t('room.overnight').toLowerCase()}`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-700 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {t('room.overnightPrice')}
+                          </span>
+                          <span className="text-sm font-bold text-indigo-600">
+                            {formatCurrency(currentOvernightPrice)}₫/{t('room.overnight').toLowerCase()}
                           </span>
                         </div>
                       )}
@@ -709,7 +1080,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                             {t('room.dailyPrice')}
                           </span>
                           <span className="text-sm font-bold text-green-600">
-                            {formatCurrency(room.price)}₫/{t('room.dailyRate').toLowerCase()}
+                            {formatCurrency(currentPrice)}₫/{t('room.dailyRate').toLowerCase()}
                           </span>
                         </div>
                       )}
@@ -744,7 +1115,7 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                 {/* Rental Type */}
                 <Card className="p-2">
                   <Label className="text-xs font-semibold mb-0.5 block">{t('room.rentalTypeLabel')}</Label>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <Button
                       type="button"
                       variant={rentalType === 'hourly' ? 'default' : 'outline'}
@@ -762,6 +1133,15 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                     >
                       <Calendar className="w-3 h-3 mr-1" />
                       {t('room.daily')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={rentalType === 'overnight' ? 'default' : 'outline'}
+                      className="h-9 text-xs"
+                      onClick={() => setRentalType('overnight')}
+                    >
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {t('room.overnight')}
                     </Button>
                   </div>
                 </Card>
@@ -814,6 +1194,63 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                         />
                       </div>
                     )}
+                  </div>
+
+                  {/* Additional Guest Information */}
+                  <div className="grid grid-cols-2 gap-2 -mt-2">
+                    <div>
+                      <Label htmlFor="guestIdNumber" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.idNumber')}
+                      </Label>
+                      <Input
+                        id="guestIdNumber"
+                        value={guestIdNumber}
+                        onChange={(e) => setGuestIdNumber(e.target.value)}
+                        placeholder={t('room.idNumberPlaceholder')}
+                        className="text-xs h-8"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="guestNationality" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.nationality')}
+                      </Label>
+                      <Input
+                        id="guestNationality"
+                        value={guestNationality}
+                        onChange={(e) => setGuestNationality(e.target.value)}
+                        placeholder={t('room.nationalityPlaceholder')}
+                        className="text-xs h-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 -mt-2">
+                    <div>
+                      <Label htmlFor="guestAddress" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.address')}
+                      </Label>
+                      <Input
+                        id="guestAddress"
+                        value={guestAddress}
+                        onChange={(e) => setGuestAddress(e.target.value)}
+                        placeholder={t('room.addressPlaceholder')}
+                        className="text-xs h-8"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="guestPassportNumber" className="text-xs font-semibold mb-0.5 block">
+                        {t('room.passportNumber')}
+                      </Label>
+                      <Input
+                        id="guestPassportNumber"
+                        value={guestPassportNumber}
+                        onChange={(e) => setGuestPassportNumber(e.target.value)}
+                        placeholder={t('room.passportNumberPlaceholder')}
+                        className="text-xs h-8"
+                      />
+                    </div>
                   </div>
                 </Card>
 
@@ -919,21 +1356,164 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
                 </div>
               </form>
             </TabsContent>
+
+            {/* Services Tab - For occupied rooms */}
+            <TabsContent value="services" className="space-y-2 mt-2">
+              {room.guest && (
+                <>
+                  <Card className="p-3">
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Coffee className="w-4 h-4" />
+                      {t('room.addService')}
+                    </h3>
+                    <div className="space-y-2">
+                      <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder={t('room.selectService')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hotelServices.length === 0 ? (
+                            <div className="p-3 text-sm text-gray-500 text-center">
+                              {t('room.noServicesAvailable')}
+                            </div>
+                          ) : (
+                            hotelServices.map((service) => (
+                              <SelectItem key={service.id} value={service.id}>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>{service.name}</span>
+                                  <span className="text-xs text-gray-500">
+                                    {formatCurrency(service.price)}₫
+                                    {service.unit && `/${service.unit}`}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={serviceQuantity}
+                          onChange={(e) => setServiceQuantity(e.target.value)}
+                          placeholder={t('room.qty')}
+                          className="h-9 text-sm w-20"
+                        />
+                        <Button
+                          onClick={handleAddService}
+                          disabled={!selectedServiceId}
+                          className="flex-1 h-9 text-sm"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {t('room.add')}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Services List */}
+                  {currentGuestServices.length > 0 ? (
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-semibold text-gray-600">{t('room.currentServices')}</h4>
+                      {currentGuestServices.map((gs) => (
+                        <Card key={gs.id} className="p-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate">
+                                {gs.serviceName || 'Service'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-500">
+                                  {t('room.qty')}: {gs.quantity}
+                                  {gs.serviceUnit && ` ${gs.serviceUnit}`}
+                                </span>
+                                <span className="text-xs text-gray-400">×</span>
+                                <span className="text-xs text-gray-500">
+                                  {formatCurrency(gs.unitPrice)}₫
+                                </span>
+                              </div>
+                              <p className="text-sm font-bold text-green-600 mt-1">
+                                {formatCurrency(gs.totalPrice)}₫
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRemoveService(gs.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+
+                      {/* Total */}
+                      <Card className="p-3 bg-blue-50 border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-sm">{t('room.servicesTotal')}</span>
+                          <span className="text-base font-bold text-blue-600">
+                            {formatCurrency(getServicesTotal())}₫
+                          </span>
+                        </div>
+                      </Card>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <Coffee className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">{t('room.noServicesAdded')}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
           </Tabs>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Payment Dialog - For checkout */}
-      {room.guest && (
-        <GuestHousePaymentDialog
-          room={room}
-          amount={getTotalWithIncidentals()}
-          checkOutDate={editedGuestCheckOutDate || room.guest.checkOutDate}
-          open={showPaymentDialog}
-          onClose={() => setShowPaymentDialog(false)}
-          onComplete={completeCheckOut}
-        />
-      )}
+      {
+        room.guest && (
+          <GuestHousePaymentDialog
+            room={room}
+            amount={getTotalWithIncidentals()}
+            roomCharge={calculateGuestTotal()}
+            services={currentGuestServices.map(gs => ({
+              id: gs.id,
+              name: gs.serviceName || 'Service',
+              price: gs.unitPrice,
+              quantity: gs.quantity,
+            }))}
+            checkOutDate={editedGuestCheckOutDate || room.guest?.checkOutDate}
+            open={showPaymentDialog}
+            onClose={() => setShowPaymentDialog(false)}
+            onComplete={completeCheckOut}
+          />
+        )
+      }
+
+      {/* Cancel Room Confirmation Dialog */}
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('room.cancelRoom')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('room.cancelRoomConfirm')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('action.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelRoom}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {t('room.cancelRoom')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

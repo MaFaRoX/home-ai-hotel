@@ -8,9 +8,9 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ExportReportButtons } from './ExportReportButtons';
 import { useLanguage } from '../contexts/LanguageContext';
-import { 
-  DollarSign, 
-  TrendingUp, 
+import {
+  DollarSign,
+  TrendingUp,
   Calendar,
   Clock,
   Users,
@@ -34,7 +34,7 @@ interface RevenueData {
   roomNumber: string;
   roomDisplayName: string; // Room number with building name: "Room 101 (Building name)"
   guestName: string;
-  isHourly: boolean;
+  rentalType: 'daily' | 'hourly' | 'overnight';
   paymentMethod: string;
 }
 
@@ -99,7 +99,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
 
   const handleClearReports = async () => {
     if (!selectedPeriod) return;
-    
+
     try {
       await clearPaymentsByPeriod(selectedPeriod);
       setClearDialogOpen(false);
@@ -117,7 +117,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   // Revenue is only calculated when guests check out, not when they check in
   const revenueHistory = useMemo(() => {
     const history: RevenueData[] = [];
-    
+
     // Only add completed payments (actual revenue from checked-out guests)
     payments.forEach(payment => {
       const roomDisplayName = formatRoomDisplayName(payment.roomNumber, payment.roomId);
@@ -127,7 +127,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
         roomNumber: payment.roomNumber,
         roomDisplayName: roomDisplayName,
         guestName: payment.guestName,
-        isHourly: payment.isHourly,
+        rentalType: payment.rentalType || (payment.isHourly ? 'hourly' : 'daily'),
         paymentMethod: payment.paymentMethod
       });
     });
@@ -143,8 +143,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   }, [revenueHistory]);
 
   const todayTotal = todayRevenue.reduce((sum, r) => sum + r.amount, 0);
-  const todayHourly = todayRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
-  const todayDaily = todayRevenue.filter(r => !r.isHourly).reduce((sum, r) => sum + r.amount, 0);
+  const todayHourly = todayRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
+  const todayDaily = todayRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
+  const todayOvernight = todayRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
 
   // This month's revenue
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -172,8 +173,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const isFreeUserLimited = !hasAdvancedReports && monthRevenue.length > 30;
 
   const monthTotal = monthRevenue.reduce((sum, r) => sum + r.amount, 0);
-  const monthHourly = monthRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
-  const monthDaily = monthRevenue.filter(r => !r.isHourly).reduce((sum, r) => sum + r.amount, 0);
+  const monthHourly = monthRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
+  const monthDaily = monthRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
+  const monthOvernight = monthRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
 
   // This year's revenue
   const currentYear = new Date().getFullYear().toString();
@@ -201,8 +203,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const isFreeUserLimitedYear = !hasAdvancedReports && yearRevenue.length > 30;
 
   const yearTotal = yearRevenue.reduce((sum, r) => sum + r.amount, 0);
-  const yearHourly = yearRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
-  const yearDaily = yearRevenue.filter(r => !r.isHourly).reduce((sum, r) => sum + r.amount, 0);
+  const yearHourly = yearRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
+  const yearDaily = yearRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
+  const yearOvernight = yearRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
 
   // All revenue (all payments regardless of date)
   const allRevenue = useMemo(() => {
@@ -224,8 +227,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const isFreeUserLimitedAll = !hasAdvancedReports && allRevenue.length > 30;
 
   const allTotal = allRevenue.reduce((sum, r) => sum + r.amount, 0);
-  const allHourly = allRevenue.filter(r => r.isHourly).reduce((sum, r) => sum + r.amount, 0);
-  const allDaily = allRevenue.filter(r => !r.isHourly).reduce((sum, r) => sum + r.amount, 0);
+  const allHourly = allRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
+  const allDaily = allRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
+  const allOvernight = allRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('vi-VN', {
@@ -325,14 +329,14 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
             <TabsTrigger value="month" className="text-base">
               {t('revenue.month')}
             </TabsTrigger>
-            <TabsTrigger 
-              value="year" 
+            <TabsTrigger
+              value="year"
               className={`text-base ${!hasAdvancedReports ? 'opacity-50' : ''}`}
             >
               {t('revenue.year')}
             </TabsTrigger>
-            <TabsTrigger 
-              value="all" 
+            <TabsTrigger
+              value="all"
               className={`text-base ${!hasAdvancedReports ? 'opacity-50' : ''}`}
             >
               {t('revenue.all') || 'All'}
@@ -348,7 +352,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 roomNumber: r.roomDisplayName, // Use display name with building
                 guestName: r.guestName,
                 amount: r.amount,
-                type: r.isHourly ? 'Gio' : 'Ngay'
+                type: r.rentalType === 'hourly' ? 'Gio' : r.rentalType === 'overnight' ? 'Qua dem' : 'Ngay'
               }))}
               reportType="guesthouse"
               period="Hom nay"
@@ -372,7 +376,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 <div className="flex items-center justify-between leading-none">
                   <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
                   <p className="text-xs text-gray-500 leading-none">
-                    {todayRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                    {todayRevenue.filter(r => r.rentalType === 'hourly').length} {t('revenue.transactions')}
                   </p>
                 </div>
                 <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
@@ -384,11 +388,23 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 <div className="flex items-center justify-between leading-none">
                   <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
                   <p className="text-xs text-gray-500 leading-none">
-                    {todayRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                    {todayRevenue.filter(r => r.rentalType === 'daily').length} {t('revenue.transactions')}
                   </p>
                 </div>
                 <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
                   {formatCurrency(todayDaily)}₫
+                </p>
+              </Card>
+
+              <Card className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('room.overnight')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {todayRevenue.filter(r => r.rentalType === 'overnight').length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-indigo-600 -mt-2 leading-none">
+                  {formatCurrency(todayOvernight)}₫
                 </p>
               </Card>
             </div>
@@ -416,7 +432,8 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           {formatCurrency(item.amount)}₫
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {item.isHourly ? t('room.hourly') : t('room.daily')}
+                          {item.rentalType === 'hourly' ? t('room.hourly') :
+                            item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
                         </Badge>
                       </div>
                     </div>
@@ -435,7 +452,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 roomNumber: r.roomDisplayName, // Use display name with building
                 guestName: r.guestName,
                 amount: r.amount,
-                type: r.isHourly ? 'Gio' : 'Ngay'
+                type: r.rentalType === 'hourly' ? 'Gio' : r.rentalType === 'overnight' ? 'Qua dem' : 'Ngay'
               }))}
               reportType="guesthouse"
               period={formatMonth(currentMonth)}
@@ -459,7 +476,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 <div className="flex items-center justify-between leading-none">
                   <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
                   <p className="text-xs text-gray-500 leading-none">
-                    {monthRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
+                    {monthRevenue.filter(r => r.rentalType === 'hourly').length} {t('revenue.transactions')}
                   </p>
                 </div>
                 <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
@@ -471,11 +488,23 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                 <div className="flex items-center justify-between leading-none">
                   <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
                   <p className="text-xs text-gray-500 leading-none">
-                    {monthRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
+                    {monthRevenue.filter(r => r.rentalType === 'daily').length} {t('revenue.transactions')}
                   </p>
                 </div>
                 <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
                   {formatCurrency(monthDaily)}₫
+                </p>
+              </Card>
+
+              <Card className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('room.overnight')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {monthRevenue.filter(r => r.rentalType === 'overnight').length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-indigo-600 -mt-2 leading-none">
+                  {formatCurrency(monthOvernight)}₫
                 </p>
               </Card>
             </div>
@@ -506,7 +535,8 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                             {formatCurrency(item.amount)}₫
                           </p>
                           <Badge variant="outline" className="text-xs">
-                            {item.isHourly ? t('room.hourly') : t('room.daily')}
+                            {item.rentalType === 'hourly' ? t('room.hourly') :
+                              item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
                           </Badge>
                         </div>
                       </div>
@@ -514,8 +544,8 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                   </div>
                   {hasMoreMonthPayments && (
                     <div className="mt-4 flex justify-center">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={handleLoadMoreMonth}
                         className="w-full"
                       >
@@ -528,8 +558,8 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                       <p className="text-center text-sm text-yellow-800 mb-2">
                         {t('revenue.freeUserLimit')} {monthRevenue.length} {t('revenue.transactions')}
                       </p>
-                      <Button 
-                        variant="default" 
+                      <Button
+                        variant="default"
                         onClick={() => setShowPremiumDialog(true)}
                         className="w-full bg-yellow-600 hover:bg-yellow-700"
                       >
@@ -539,7 +569,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                   )}
                   {!hasMoreMonthPayments && !isFreeUserLimited && monthRevenue.length > 30 && (
                     <p className="text-center text-sm text-gray-500 mt-4">
-                        {t('revenue.allLoaded')} {monthRevenue.length} {t('revenue.transactions')}
+                      {t('revenue.allLoaded')} {monthRevenue.length} {t('revenue.transactions')}
                     </p>
                   )}
                 </>
@@ -555,123 +585,135 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               </Card>
             ) : (
               <>
-            {/* Export Buttons */}
-            <ExportReportButtons
-              data={yearRevenue.map(r => ({
-                date: r.date,
-                roomNumber: r.roomDisplayName, // Use display name with building
-                guestName: r.guestName,
-                amount: r.amount,
-                type: r.isHourly ? 'Gio' : 'Ngay'
-              }))}
-              reportType="guesthouse"
-              period={`Nam ${currentYear}`}
-              summary={{ total: yearTotal }}
-            />
+                {/* Export Buttons */}
+                <ExportReportButtons
+                  data={yearRevenue.map(r => ({
+                    date: r.date,
+                    roomNumber: r.roomDisplayName, // Use display name with building
+                    guestName: r.guestName,
+                    amount: r.amount,
+                    type: r.rentalType === 'hourly' ? 'Gio' : r.rentalType === 'overnight' ? 'Qua dem' : 'Ngay'
+                  }))}
+                  reportType="guesthouse"
+                  period={`Nam ${currentYear}`}
+                  summary={{ total: yearTotal }}
+                />
 
-            <div className="grid grid-cols-1 gap-3">
-              <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <div className="flex items-center justify-between leading-none">
-                  <p className="text-sm text-gray-600 leading-none">{t('revenue.totalYear')}</p>
-                  <p className="text-xs text-gray-500 leading-none">
-                    {yearRevenue.length} {t('revenue.transactions')}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
-                  {formatCurrency(yearTotal)}₫
-                </p>
-              </Card>
-
-              <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <div className="flex items-center justify-between leading-none">
-                  <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
-                  <p className="text-xs text-gray-500 leading-none">
-                    {yearRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
-                  {formatCurrency(yearHourly)}₫
-                </p>
-              </Card>
-
-              <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <div className="flex items-center justify-between leading-none">
-                  <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
-                  <p className="text-xs text-gray-500 leading-none">
-                    {yearRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
-                  {formatCurrency(yearDaily)}₫
-                </p>
-              </Card>
-            </div>
-
-            <Card className="p-4">
-              <h3 className="font-semibold text-lg mb-3">
-                {t('revenue.monthDetails')} {currentYear}
-              </h3>
-              {yearRevenue.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
-              ) : (
-                <>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {visibleYearRevenue.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Home className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
-                            <p className="text-sm text-gray-600">{item.guestName}</p>
-                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">
-                            {formatCurrency(item.amount)}₫
-                          </p>
-                          <Badge variant="outline" className="text-xs">
-                            {item.isHourly ? t('room.hourly') : t('room.daily')}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {hasMoreYearPayments && (
-                    <div className="mt-4 flex justify-center">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleLoadMoreYear}
-                        className="w-full"
-                      >
-                        {t('revenue.loadMore')} ({yearRevenue.length - yearVisibleCount} remaining)
-                      </Button>
-                    </div>
-                  )}
-                  {isFreeUserLimitedYear && (
-                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-center text-sm text-yellow-800 mb-2">
-                        {t('revenue.freeUserLimit')} {yearRevenue.length} {t('revenue.transactions')}
+                <div className="grid grid-cols-1 gap-3">
+                  <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('revenue.totalYear')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {yearRevenue.length} {t('revenue.transactions')}
                       </p>
-                      <Button 
-                        variant="default" 
-                        onClick={() => setShowPremiumDialog(true)}
-                        className="w-full bg-yellow-600 hover:bg-yellow-700"
-                      >
-                        {t('revenue.upgradeToViewAll') || 'Upgrade'}
-                      </Button>
                     </div>
-                  )}
-                  {!hasMoreYearPayments && !isFreeUserLimitedYear && yearRevenue.length > 30 && (
-                    <p className="text-center text-sm text-gray-500 mt-4">
-                        {t('revenue.allLoaded')} {yearRevenue.length} {t('revenue.transactions')}
+                    <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
+                      {formatCurrency(yearTotal)}₫
                     </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {yearRevenue.filter(r => r.rentalType === 'hourly').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
+                      {formatCurrency(yearHourly)}₫
+                    </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {yearRevenue.filter(r => r.rentalType === 'daily').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
+                      {formatCurrency(yearDaily)}₫
+                    </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('room.overnight')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {yearRevenue.filter(r => r.rentalType === 'overnight').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-indigo-600 -mt-2 leading-none">
+                      {formatCurrency(yearOvernight)}₫
+                    </p>
+                  </Card>
+                </div>
+
+                <Card className="p-4">
+                  <h3 className="font-semibold text-lg mb-3">
+                    {t('revenue.monthDetails')} {currentYear}
+                  </h3>
+                  {yearRevenue.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
+                  ) : (
+                    <>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {visibleYearRevenue.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <Home className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
+                                <p className="text-sm text-gray-600">{item.guestName}</p>
+                                <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-green-600">
+                                {formatCurrency(item.amount)}₫
+                              </p>
+                              <Badge variant="outline" className="text-xs">
+                                {item.rentalType === 'hourly' ? t('room.hourly') : item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {hasMoreYearPayments && (
+                        <div className="mt-4 flex justify-center">
+                          <Button
+                            variant="outline"
+                            onClick={handleLoadMoreYear}
+                            className="w-full"
+                          >
+                            {t('revenue.loadMore')} ({yearRevenue.length - yearVisibleCount} remaining)
+                          </Button>
+                        </div>
+                      )}
+                      {isFreeUserLimitedYear && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-center text-sm text-yellow-800 mb-2">
+                            {t('revenue.freeUserLimit')} {yearRevenue.length} {t('revenue.transactions')}
+                          </p>
+                          <Button
+                            variant="default"
+                            onClick={() => setShowPremiumDialog(true)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          >
+                            {t('revenue.upgradeToViewAll') || 'Upgrade'}
+                          </Button>
+                        </div>
+                      )}
+                      {!hasMoreYearPayments && !isFreeUserLimitedYear && yearRevenue.length > 30 && (
+                        <p className="text-center text-sm text-gray-500 mt-4">
+                          {t('revenue.allLoaded')} {yearRevenue.length} {t('revenue.transactions')}
+                        </p>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </Card>
+                </Card>
               </>
             )}
           </TabsContent>
@@ -684,130 +726,142 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
               </Card>
             ) : (
               <>
-            {/* Export Buttons */}
-            <ExportReportButtons
-              data={allRevenue.map(r => ({
-                date: r.date,
-                roomNumber: r.roomDisplayName, // Use display name with building
-                guestName: r.guestName,
-                amount: r.amount,
-                type: r.isHourly ? 'Gio' : 'Ngay'
-              }))}
-              reportType="guesthouse"
-              period={t('revenue.all') || 'All'}
-              summary={{ total: allTotal }}
-            />
+                {/* Export Buttons */}
+                <ExportReportButtons
+                  data={allRevenue.map(r => ({
+                    date: r.date,
+                    roomNumber: r.roomDisplayName, // Use display name with building
+                    guestName: r.guestName,
+                    amount: r.amount,
+                    type: r.rentalType === 'hourly' ? 'Gio' : r.rentalType === 'overnight' ? 'Qua dem' : 'Ngay'
+                  }))}
+                  reportType="guesthouse"
+                  period={t('revenue.all') || 'All'}
+                  summary={{ total: allTotal }}
+                />
 
-            <div className="grid grid-cols-1 gap-3">
-              <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
-                <div className="flex items-center justify-between leading-none">
-                  <p className="text-sm text-gray-600 leading-none">{t('revenue.total')}</p>
-                  <p className="text-xs text-gray-500 leading-none">
-                    {allRevenue.length} {t('revenue.transactions')}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
-                  {formatCurrency(allTotal)}₫
-                </p>
-              </Card>
-
-              <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
-                <div className="flex items-center justify-between leading-none">
-                  <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
-                  <p className="text-xs text-gray-500 leading-none">
-                    {allRevenue.filter(r => r.isHourly).length} {t('revenue.transactions')}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
-                  {formatCurrency(allHourly)}₫
-                </p>
-              </Card>
-
-              <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
-                <div className="flex items-center justify-between leading-none">
-                  <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
-                  <p className="text-xs text-gray-500 leading-none">
-                    {allRevenue.filter(r => !r.isHourly).length} {t('revenue.transactions')}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
-                  {formatCurrency(allDaily)}₫
-                </p>
-              </Card>
-            </div>
-
-            <Card className="p-4">
-              <h3 className="font-semibold text-lg mb-3">
-                {t('revenue.monthDetails')} {t('revenue.all') || 'All'}
-              </h3>
-              {allRevenue.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
-              ) : (
-                <>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {visibleAllRevenue.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Home className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
-                            <p className="text-sm text-gray-600">{item.guestName}</p>
-                            <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">
-                            {formatCurrency(item.amount)}₫
-                          </p>
-                          <Badge variant="outline" className="text-xs">
-                            {item.isHourly ? t('room.hourly') : t('room.daily')}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {hasMoreAllPayments && (
-                    <div className="mt-4 flex justify-center">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleLoadMoreAll}
-                        className="w-full"
-                      >
-                        {t('revenue.loadMore')} ({allRevenue.length - allVisibleCount} remaining)
-                      </Button>
-                    </div>
-                  )}
-                  {isFreeUserLimitedAll && (
-                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-center text-sm text-yellow-800 mb-2">
-                        {t('revenue.freeUserLimit')} {allRevenue.length} {t('revenue.transactions')}
+                <div className="grid grid-cols-1 gap-3">
+                  <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('revenue.total')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {allRevenue.length} {t('revenue.transactions')}
                       </p>
-                      <Button 
-                        variant="default" 
-                        onClick={() => setShowPremiumDialog(true)}
-                        className="w-full bg-yellow-600 hover:bg-yellow-700"
-                      >
-                        {t('revenue.upgradeToViewAll') || 'Upgrade'}
-                      </Button>
                     </div>
-                  )}
-                  {!hasMoreAllPayments && !isFreeUserLimitedAll && allRevenue.length > 30 && (
-                    <p className="text-center text-sm text-gray-500 mt-4">
-                        {t('revenue.allLoaded')} {allRevenue.length} {t('revenue.transactions')}
+                    <p className="text-2xl font-bold text-green-600 -mt-2 leading-none">
+                      {formatCurrency(allTotal)}₫
                     </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('revenue.hourly')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {allRevenue.filter(r => r.rentalType === 'hourly').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600 -mt-2 leading-none">
+                      {formatCurrency(allHourly)}₫
+                    </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('revenue.daily')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {allRevenue.filter(r => r.rentalType === 'daily').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-purple-600 -mt-2 leading-none">
+                      {formatCurrency(allDaily)}₫
+                    </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('room.overnight')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {allRevenue.filter(r => r.rentalType === 'overnight').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-indigo-600 -mt-2 leading-none">
+                      {formatCurrency(allOvernight)}₫
+                    </p>
+                  </Card>
+                </div>
+
+                <Card className="p-4">
+                  <h3 className="font-semibold text-lg mb-3">
+                    {t('revenue.monthDetails')} {t('revenue.all') || 'All'}
+                  </h3>
+                  {allRevenue.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">{t('revenue.noRevenueYear')}</p>
+                  ) : (
+                    <>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {visibleAllRevenue.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <Home className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-semibold">{t('common.room')} {item.roomDisplayName}</p>
+                                <p className="text-sm text-gray-600">{item.guestName}</p>
+                                <p className="text-xs text-gray-500">{formatDate(item.date)}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-green-600">
+                                {formatCurrency(item.amount)}₫
+                              </p>
+                              <Badge variant="outline" className="text-xs">
+                                {item.rentalType === 'hourly' ? t('room.hourly') : item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {hasMoreAllPayments && (
+                        <div className="mt-4 flex justify-center">
+                          <Button
+                            variant="outline"
+                            onClick={handleLoadMoreAll}
+                            className="w-full"
+                          >
+                            {t('revenue.loadMore')} ({allRevenue.length - allVisibleCount} remaining)
+                          </Button>
+                        </div>
+                      )}
+                      {isFreeUserLimitedAll && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-center text-sm text-yellow-800 mb-2">
+                            {t('revenue.freeUserLimit')} {allRevenue.length} {t('revenue.transactions')}
+                          </p>
+                          <Button
+                            variant="default"
+                            onClick={() => setShowPremiumDialog(true)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          >
+                            {t('revenue.upgradeToViewAll') || 'Upgrade'}
+                          </Button>
+                        </div>
+                      )}
+                      {!hasMoreAllPayments && !isFreeUserLimitedAll && allRevenue.length > 30 && (
+                        <p className="text-center text-sm text-gray-500 mt-4">
+                          {t('revenue.allLoaded')} {allRevenue.length} {t('revenue.transactions')}
+                        </p>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </Card>
+                </Card>
               </>
             )}
           </TabsContent>
         </Tabs>
       </DialogContent>
-      <PremiumDialog 
-        open={showPremiumDialog} 
+      <PremiumDialog
+        open={showPremiumDialog}
         onOpenChange={setShowPremiumDialog}
         onUpgradeSuccess={() => setShowPremiumDialog(false)}
       />

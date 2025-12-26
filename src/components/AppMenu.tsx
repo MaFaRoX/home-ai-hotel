@@ -1,6 +1,6 @@
 'use client'
 
-import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft, Download } from 'lucide-react';
+import { LogOut, UserPlus, Users, Building2, Settings, Trash2, CreditCard, Globe, HelpCircle, DollarSign, PanelLeft, Download, Coffee } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useBusinessModel } from '../hooks/useBusinessModel';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -20,6 +20,7 @@ import { BankAccountManagement } from './BankAccountManagement';
 import { SubscriptionStatus } from './SubscriptionStatus';
 import { GuestHouseRevenueDialog } from './GuestHouseRevenueDialog';
 import { HelpDialog } from './HelpDialog';
+import { ServiceManagement } from './ServiceManagement';
 import { useMenu } from '../contexts/MenuContext';
 
 interface AppMenuProps {
@@ -36,6 +37,7 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
   const [showHotelConfig, setShowHotelConfig] = useState(false);
   const [showBankAccount, setShowBankAccount] = useState(false);
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
+  const [showServiceManagement, setShowServiceManagement] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showInstallPwaDialog, setShowInstallPwaDialog] = useState(false);
@@ -135,6 +137,20 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
         >
           <DollarSign className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
           {!isCollapsed && t('revenue.title')}
+        </Button>
+
+        {/* Service Management */}
+        <Button
+          variant="ghost"
+          className={`w-full ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
+          onClick={() => {
+            setShowServiceManagement(true);
+            onClose?.();
+          }}
+          title={isCollapsed ? t('menu.serviceManagement') : undefined}
+        >
+          <Coffee className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+          {!isCollapsed && t('menu.serviceManagement')}
         </Button>
 
         {/* Admin only */}
@@ -441,6 +457,12 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <GuestHouseRevenueDialog
         open={showRevenueDialog}
         onClose={() => setShowRevenueDialog(false)}
+      />
+
+      {/* Service Management Dialog */}
+      <ServiceManagement
+        open={showServiceManagement}
+        onClose={() => setShowServiceManagement(false)}
       />
 
       {/* Help Dialog */}

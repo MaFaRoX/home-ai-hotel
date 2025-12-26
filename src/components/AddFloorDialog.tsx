@@ -108,6 +108,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
         type: 'Single',
         price: 300000, // Default price
         hourlyRate: 50000, // Default hourly rate
+        overnightPrice: 200000, // Default overnight price
         status: 'vacant-clean',
       };
 
@@ -213,7 +214,7 @@ export function AddFloorDialog({ open, onClose, buildingId = '' }: AddFloorDialo
               <li>• <strong>{t('add.previewFloor')}:</strong> {t('add.floorNumber')} {floorNumber}</li>
               <li>• <strong>{t('add.previewRooms')}:</strong> {numberOfRooms} {t('building.rooms')}</li>
               <li>• <strong>{t('add.previewRoomNumbers')}:</strong> {floorNumber}01, {floorNumber}02, ... {floorNumber}{numberOfRooms.toString().padStart(2, '0')}</li>
-              <li>• <strong>{t('add.previewDefaultPrice')}:</strong> 300,000₫/{t('room.daily').toLowerCase()}, 50,000₫/{t('room.hourly').toLowerCase()}</li>
+              <li>• <strong>{t('add.previewDefaultPrice')}:</strong> 300,000₫/{t('room.daily').toLowerCase()}, 50,000₫/{t('room.hourly').toLowerCase()}, 200,000₫/{t('room.overnight').toLowerCase()}</li>
             </ul>
           </div>
 

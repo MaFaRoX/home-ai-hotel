@@ -27,6 +27,8 @@ import { useSubscription } from '../hooks/useSubscription';
 interface GuestHousePaymentDialogProps {
   room: Room;
   amount: number;
+  roomCharge?: number; // Room charge only (without services)
+  services?: Array<{ id: string; name: string; price: number; quantity: number }>; // Services to display
   checkOutDate?: string; // Edited checkout date (optional, falls back to room.guest.checkOutDate)
   open: boolean;
   onClose: () => void;
@@ -36,6 +38,8 @@ interface GuestHousePaymentDialogProps {
 export function GuestHousePaymentDialog({
   room,
   amount,
+  roomCharge,
+  services,
   checkOutDate,
   open,
   onClose,
@@ -66,7 +70,8 @@ export function GuestHousePaymentDialog({
   };
 
   const getRoomAmount = () => {
-    return room.guest?.totalAmount || 0;
+    // Use provided roomCharge if available, otherwise fallback to room.guest.totalAmount
+    return roomCharge ?? room.guest?.totalAmount ?? 0;
   };
 
   // Calculate VAT breakdown
@@ -390,7 +395,7 @@ export function GuestHousePaymentDialog({
                 <Card className="p-3 sm:p-4 bg-blue-50 border-blue-200">
                   <div className="flex justify-between items-center gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm text-gray-600 truncate">Phòng {room.number} - {room.type}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">{t('common.room')} {room.number} - {t(`roomType.${room.type.toLowerCase()}` as any)}</p>
                       <p className="text-base sm:text-lg font-semibold truncate">{room.guest?.name}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -513,22 +518,48 @@ export function GuestHousePaymentDialog({
                         <span className="font-semibold">{room.guest.phone}</span>
                       </div>
                     )}
+                    {room.guest?.additionalInfo?.idNumber && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('room.idNumber')}:</span>
+                        <span className="font-semibold">{room.guest.additionalInfo.idNumber}</span>
+                      </div>
+                    )}
+                    {room.guest?.additionalInfo?.address && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('room.address')}:</span>
+                        <span className="font-semibold">{room.guest.additionalInfo.address}</span>
+                      </div>
+                    )}
+                    {room.guest?.additionalInfo?.nationality && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('room.nationality')}:</span>
+                        <span className="font-semibold">{room.guest.additionalInfo.nationality}</span>
+                      </div>
+                    )}
+                    {room.guest?.additionalInfo?.passportNumber && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{t('room.passportNumber')}:</span>
+                        <span className="font-semibold">{room.guest.additionalInfo.passportNumber}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Phòng:</span>
+                      <span className="text-gray-600">{t('payment.roomLabel')}:</span>
                       <span className="font-semibold">{room.number}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">{t('payment.rentalType')}:</span>
                       <span className="font-semibold">
-                        {room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
+                        {room.guest?.rentalType === 'hourly' ? t('room.hourly') :
+                          room.guest?.rentalType === 'overnight' ? t('room.overnight') :
+                            room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Check-in:</span>
+                      <span className="text-gray-600">{t('room.checkinDate')}:</span>
                       <span className="font-semibold">{formatDate(room.guest?.checkInDate)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Check-out:</span>
+                      <span className="text-gray-600">{t('room.checkoutDate')}:</span>
                       <span className="font-semibold">{formatDate(checkOutDate || room.guest?.checkOutDate)}</span>
                     </div>
                   </div>
@@ -543,16 +574,50 @@ export function GuestHousePaymentDialog({
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-medium text-gray-700">
-                          {t('common.room')} ({t('payment.beforeVAT')})
+                          {t('common.room')}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {room.guest?.isHourly
+                          {room.guest?.rentalType === 'hourly' || (room.guest?.isHourly && !room.guest?.rentalType)
                             ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
-                            : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
+                            : room.guest?.rentalType === 'overnight'
+                              ? `${formatCurrency(room.overnightPrice || 0)}₫/${t('room.overnight').toLowerCase()}`
+                              : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
                           }
                         </p>
                       </div>
                       <span className="font-semibold text-gray-800">
+                        {formatCurrency(getRoomAmount())}₫
+                      </span>
+                    </div>
+
+                    {/* Services (if any) */}
+                    {services && services.length > 0 && (
+                      <div className="space-y-1 pt-2 pb-1 border-t">
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="font-medium text-gray-700 text-xs">{t('room.services')}:</p>
+                        </div>
+                        {services.map((service) => (
+                          <div key={service.id} className="flex justify-between items-center text-xs ml-2">
+                            <div>
+                              <span className="text-gray-600">{service.name}</span>
+                              <span className="text-gray-400 ml-1">
+                                × {service.quantity}
+                              </span>
+                            </div>
+                            <span className="text-gray-700">
+                              {formatCurrency((service.price || 0) * (service.quantity || 1))}₫
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <Separator className="my-2" />
+
+                    {/* Subtotal before VAT */}
+                    <div className="flex justify-between items-center text-gray-700">
+                      <p>{t('payment.beforeVAT')}</p>
+                      <span className="font-semibold">
                         {formatCurrency(amount)}₫
                       </span>
                     </div>

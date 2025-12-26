@@ -369,17 +369,17 @@ export function LoginScreen() {
 
         {/* Login Options */}
         <div className="mt-8 space-y-3">
-          {/* 
-          <Button
-            type="button"
-            className="w-full"
-            onClick={() => setShowLogin(true)}
-            size="lg"
-            disabled={loading}
-          >
-            {t('login.login') || 'Login'}
-          </Button>
-          */}
+          {
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => setShowLogin(true)}
+              size="lg"
+              disabled={loading}
+            >
+              {t('login.login') || 'Login'}
+            </Button>
+          }
 
           {/* Hidden Google button container (used as fallback) */}
           <div
@@ -462,6 +462,21 @@ export function LoginScreen() {
           >
             {t('login.guestMode')}
           </Button>
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            {t('login.policy1' as any)}
+            <a
+              href={t('login.policyUrl' as any)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              {t('login.policyLink' as any)}
+            </a>
+            {t('login.policy2' as any)}
+          </p>
         </div>
       </Card>
 

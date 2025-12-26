@@ -1,10 +1,10 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
-import { Room, User, Hotel, Payment, Building, BusinessModel } from '../types';
+import { Room, User, Hotel, Payment, Building, BusinessModel, HotelService, GuestService } from '../types';
 import { initialRooms } from '../data/rooms';
 import { getFeatures } from '../utils/businessModelFeatures';
-import { hotelApi, buildingApi, roomApi, paymentApi, staffApi } from '../utils/api/guesthouse';
+import { hotelApi, buildingApi, roomApi, paymentApi, staffApi, serviceApi } from '../utils/api/guesthouse';
 import { authApi } from '../utils/api/auth';
 import { ApiClientError } from '../utils/api';
 import { saveAuthState, loadAuthState, clearAuthState, migrateOldTokens, getRefreshToken, type AuthUser, type AuthTokens } from '../utils/auth';
@@ -22,6 +22,10 @@ interface AppContextType {
   isPremium: boolean;
   isGuestMode: boolean;
   hasUsedFreeTrial: boolean;
+  hotelServices: HotelService[];
+  guestServices: GuestService[];
+  loadHotelServices: () => Promise<void>;
+  loadAllGuestServices: () => Promise<void>;
   setBusinessModel: (model: BusinessModel | null) => void;
   login: (username: string, password: string) => Promise<void>;
   signInWithGoogle: (idToken: string) => Promise<void>;
@@ -71,6 +75,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
     }
   }, [isGuestMode]);
   const [hasUsedFreeTrial, setHasUsedFreeTrial] = useState<boolean>(true);
+  const [hotelServices, setHotelServices] = useState<HotelService[]>([]);
+  const [guestServices, setGuestServices] = useState<GuestService[]>([]);
 
   // Auth state management (following CV_Online pattern)
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -284,6 +290,24 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         hotelName: hotelData.name,
       } : null);
 
+      // Load hotel services catalog
+      try {
+        const services = await serviceApi.getAll(hotelData.id);
+        setHotelServices(services);
+      } catch (error) {
+        console.error('Failed to load hotel services:', error);
+        // Don't fail the entire load if services fail
+      }
+
+      // Load all guest services for occupied rooms
+      try {
+        const allGuestServices = await serviceApi.getAllGuestServices(hotelData.id);
+        setGuestServices(allGuestServices);
+      } catch (error) {
+        console.error('Failed to load guest services:', error);
+        // Don't fail the entire load if services fail
+      }
+
       // Ensure we're in API mode after successful load
       setIsGuestMode(false);
     } catch (error) {
@@ -451,6 +475,24 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
           hotelName: hotelData.name,
         } : null);
 
+        // Load hotel services catalog
+        try {
+          const services = await serviceApi.getAll(hotelData.id);
+          setHotelServices(services);
+        } catch (error) {
+          console.error('Failed to load hotel services:', error);
+          // Don't fail the entire load if services fail
+        }
+
+        // Load all guest services for occupied rooms
+        try {
+          const allGuestServices = await serviceApi.getAllGuestServices(hotelData.id);
+          setGuestServices(allGuestServices);
+        } catch (error) {
+          console.error('Failed to load guest services:', error);
+          // Don't fail the entire load if services fail
+        }
+
       } catch {
         // Profile check failed, try to refresh
         if (!stored.refreshToken) {
@@ -579,7 +621,29 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
       console.error('Failed to refresh data:', error);
       await handleApiError(error, 'Failed to refresh data');
     }
-  }, [hotel, isGuestMode]);
+  }, [hotel, isGuestMode, handleApiError]);
+
+  const loadHotelServices = useCallback(async () => {
+    if (!hotel || isGuestMode) return;
+    try {
+      const services = await serviceApi.getAll(hotel.id);
+      setHotelServices(services);
+    } catch (error) {
+      console.error('Failed to load hotel services:', error);
+      await handleApiError(error, 'Failed to load hotel services');
+    }
+  }, [hotel, isGuestMode, handleApiError]);
+
+  const loadAllGuestServices = useCallback(async () => {
+    if (!hotel || isGuestMode) return;
+    try {
+      const allGuestServices = await serviceApi.getAllGuestServices(hotel.id);
+      setGuestServices(allGuestServices);
+    } catch (error) {
+      console.error('Failed to load guest services:', error);
+      await handleApiError(error, 'Failed to load guest services');
+    }
+  }, [hotel, isGuestMode, handleApiError]);
 
   const setupHotel = async (hotelName: string, adminEmail: string, adminName: string, model: BusinessModel) => {
     if (isGuestMode) {
@@ -927,11 +991,12 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         checkOutDate: guestData.checkOutDate,
         totalAmount: guestData.totalAmount,
         isHourly: guestData.isHourly || false,
+        rentalType: guestData.rentalType,
         checkedInBy: user?.name || user?.email,
       };
-
       if (guestData.services) checkInPayload.services = guestData.services;
       if (guestData.incidentalCharges) checkInPayload.incidentalCharges = guestData.incidentalCharges;
+      if (guestData.additionalInfo) checkInPayload.additionalInfo = guestData.additionalInfo;
 
       // Use the returned room data instead of fetching everything
       const updatedRoom = await roomApi.checkIn(roomId, checkInPayload);
@@ -1096,6 +1161,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         checkOutDate: payment.checkOutDate,
         roomCharge: payment.roomCharge,
         isHourly: isHourly,
+        rentalType: payment.rentalType,
         services: payment.services,
         incidentalCharges: payment.incidentalCharges,
         subtotal: payment.subtotal,
@@ -1485,6 +1551,10 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         isPremium,
         isGuestMode,
         hasUsedFreeTrial,
+        hotelServices,
+        guestServices,
+        loadHotelServices,
+        loadAllGuestServices,
         setBusinessModel,
         login,
         signInWithGoogle,

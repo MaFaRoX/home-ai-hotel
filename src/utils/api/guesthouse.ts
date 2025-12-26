@@ -43,6 +43,8 @@ export interface BackendRoom {
   roomType: 'Single' | 'Double' | 'Deluxe' | 'Suite' | 'Family';
   price: number;
   hourlyRate: number | null;
+  hourlyBasePrice: number | null;
+  overnightPrice: number | null;
   status: 'vacant-clean' | 'occupied' | 'vacant-dirty' | 'due-out' | 'out-of-order';
   createdAt: string;
   updatedAt: string;
@@ -54,10 +56,17 @@ export interface BackendRoom {
     checkInDate: string;
     checkOutDate: string;
     totalAmount: number;
-    isHourly: boolean;
+    isHourly?: boolean; // deprecated in favor of rentalType
+    rentalType: 'daily' | 'hourly' | 'overnight';
     services: unknown[] | null;
     incidentalCharges: unknown[] | null;
     checkedInBy: string | null;
+    additionalInfo?: {
+      idNumber?: string;
+      address?: string;
+      nationality?: string;
+      passportNumber?: string;
+    } | null;
   } | null;
 }
 
@@ -70,7 +79,8 @@ export interface BackendPayment {
   checkInDate: string;
   checkOutDate: string;
   roomCharge: number;
-  isHourly: boolean;
+  isHourly?: boolean; // deprecated in favor of rentalType
+  rentalType: 'daily' | 'hourly' | 'overnight';
   services: unknown[] | null;
   incidentalCharges: unknown[] | null;
   subtotal: number;
@@ -138,9 +148,12 @@ function convertRoom(backend: BackendRoom): Room {
     type: backend.roomType,
     price: backend.price,
     hourlyRate: backend.hourlyRate || undefined,
+    hourlyBasePrice: backend.hourlyBasePrice || undefined,
+    overnightPrice: backend.overnightPrice || undefined,
     status: backend.status,
     guest: backend.guest
       ? {
+        id: backend.guest.id.toString(),
         name: backend.guest.name,
         phone: backend.guest.phone || undefined,
         email: backend.guest.email || undefined,
@@ -150,7 +163,9 @@ function convertRoom(backend: BackendRoom): Room {
         services: backend.guest.services as any,
         incidentalCharges: backend.guest.incidentalCharges as any,
         checkedInBy: backend.guest.checkedInBy || undefined,
-        isHourly: backend.guest.isHourly,
+        isHourly: backend.guest.rentalType === 'hourly', // Backward compatibility for UI logic using isHourly
+        rentalType: backend.guest.rentalType,
+        additionalInfo: backend.guest.additionalInfo || undefined,
       }
       : undefined,
   };
@@ -165,7 +180,8 @@ function convertPayment(backend: BackendPayment): Payment {
     checkInDate: backend.checkInDate,
     checkOutDate: backend.checkOutDate,
     roomCharge: backend.roomCharge,
-    isHourly: backend.isHourly,
+    isHourly: backend.rentalType === 'hourly', // Backward compatibility
+    rentalType: backend.rentalType,
     services: (backend.services as any) || [],
     incidentalCharges: (backend.incidentalCharges as any) || [],
     subtotal: backend.subtotal,
@@ -281,6 +297,8 @@ export const roomApi = {
     roomType: 'Single' | 'Double' | 'Deluxe' | 'Suite' | 'Family';
     price: number;
     hourlyRate?: number;
+    hourlyBasePrice?: number;
+    overnightPrice?: number;
     status?: 'vacant-clean' | 'occupied' | 'vacant-dirty' | 'due-out' | 'out-of-order';
   }): Promise<Room> => {
     const response = await api.post<{ room: BackendRoom }>('/guesthouse/rooms', data);
@@ -293,6 +311,8 @@ export const roomApi = {
     roomType?: 'Single' | 'Double' | 'Deluxe' | 'Suite' | 'Family';
     price?: number;
     hourlyRate?: number | null;
+    hourlyBasePrice?: number | null;
+    overnightPrice?: number | null;
     status?: 'vacant-clean' | 'occupied' | 'vacant-dirty' | 'due-out' | 'out-of-order';
     buildingId?: string;
   }): Promise<Room> => {
@@ -319,10 +339,17 @@ export const roomApi = {
     checkInDate: string;
     checkOutDate: string;
     totalAmount: number;
-    isHourly: boolean;
+    isHourly?: boolean; // deprecated, use rentalType
+    rentalType?: 'daily' | 'hourly' | 'overnight';
     services?: unknown[];
     incidentalCharges?: unknown[];
     checkedInBy?: string;
+    additionalInfo?: {
+      idNumber?: string;
+      address?: string;
+      nationality?: string;
+      passportNumber?: string;
+    };
   }): Promise<Room> => {
     // Build payload - phone is optional, send null if not provided
     const payload: any = {
@@ -332,11 +359,13 @@ export const roomApi = {
       checkInDate: data.checkInDate,
       checkOutDate: data.checkOutDate,
       totalAmount: data.totalAmount,
-      isHourly: data.isHourly,
+      isHourly: data.isHourly, // Send for backward compatibility if needed, but backend prefers rentalType
+      rentalType: data.rentalType || (data.isHourly ? 'hourly' : 'daily'),
     };
     if (data.checkedInBy) payload.checkedInBy = data.checkedInBy;
     if (data.services) payload.services = data.services;
     if (data.incidentalCharges) payload.incidentalCharges = data.incidentalCharges;
+    if (data.additionalInfo) payload.additionalInfo = data.additionalInfo;
 
     const response = await api.post<{ room: BackendRoom }>(`/guesthouse/rooms/${roomId}/check-in`, payload);
 
@@ -414,7 +443,8 @@ export const paymentApi = {
     checkInDate: string;
     checkOutDate: string;
     roomCharge: number;
-    isHourly: boolean;
+    isHourly?: boolean; // deprecated, use rentalType
+    rentalType: 'daily' | 'hourly' | 'overnight';
     services?: unknown[];
     incidentalCharges?: unknown[];
     subtotal: number;
@@ -478,6 +508,125 @@ export const revenueApi = {
 
   getByDateRange: async (hotelId: string, startDate: string, endDate: string) => {
     return api.get(`/guesthouse/revenue/range?hotelId=${hotelId}&startDate=${startDate}&endDate=${endDate}`);
+  },
+};
+
+// Service types and API
+import { HotelService, GuestService } from '../../types';
+
+export interface BackendHotelService {
+  id: number;
+  hotelId: number;
+  name: string;
+  description: string | null;
+  price: number;
+  unit: string | null;
+  category: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendGuestService {
+  id: number;
+  guestId: number;
+  serviceId: number;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  serviceName?: string;
+  serviceUnit?: string;
+}
+
+function convertHotelService(backend: BackendHotelService): HotelService {
+  return {
+    id: backend.id.toString(),
+    hotelId: backend.hotelId.toString(),
+    name: backend.name,
+    description: backend.description || undefined,
+    price: backend.price,
+    unit: backend.unit || undefined,
+    category: backend.category || undefined,
+    isActive: backend.isActive,
+    createdAt: backend.createdAt,
+    updatedAt: backend.updatedAt,
+  };
+}
+
+function convertGuestService(backend: BackendGuestService): GuestService {
+  return {
+    id: backend.id.toString(),
+    guestId: backend.guestId.toString(),
+    serviceId: backend.serviceId.toString(),
+    quantity: backend.quantity,
+    unitPrice: backend.unitPrice,
+    totalPrice: backend.totalPrice,
+    notes: backend.notes || undefined,
+    createdAt: backend.createdAt,
+    updatedAt: backend.updatedAt,
+    serviceName: backend.serviceName,
+    serviceUnit: backend.serviceUnit,
+  };
+}
+
+// Service API
+export const serviceApi = {
+  // Hotel Services (Catalog)
+  getAll: async (hotelId: string): Promise<HotelService[]> => {
+    const response = await api.get<{ services: BackendHotelService[] }>(`/guesthouse/services?hotelId=${hotelId}`);
+    return response.services.map(convertHotelService);
+  },
+
+  create: async (data: {
+    hotelId: string;
+    name: string;
+    description?: string;
+    price: number;
+    unit?: string;
+    category?: string;
+  }): Promise<HotelService> => {
+    const response = await api.post<{ service: BackendHotelService }>('/guesthouse/services', data);
+    return convertHotelService(response.service);
+  },
+
+  update: async (serviceId: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    unit?: string;
+    category?: string;
+    isActive?: boolean;
+  }): Promise<HotelService> => {
+    const response = await api.put<{ service: BackendHotelService }>(`/guesthouse/services/${serviceId}`, data);
+    return convertHotelService(response.service);
+  },
+
+  // Guest Services (Usage tracking)
+  getAllGuestServices: async (hotelId: string): Promise<GuestService[]> => {
+    const response = await api.get<{ services: BackendGuestService[] }>(`/guesthouse/hotels/${hotelId}/guest-services`);
+    return response.services.map(convertGuestService);
+  },
+
+  getGuestServices: async (guestId: string): Promise<GuestService[]> => {
+    const response = await api.get<{ services: BackendGuestService[] }>(`/guesthouse/guests/${guestId}/services`);
+    return response.services.map(convertGuestService);
+  },
+
+  addToGuest: async (data: {
+    guestId: string;
+    serviceId: string;
+    quantity: number;
+    notes?: string;
+  }): Promise<GuestService> => {
+    const response = await api.post<{ guestService: BackendGuestService }>('/guesthouse/guest-services', data);
+    return convertGuestService(response.guestService);
+  },
+
+  removeFromGuest: async (guestServiceId: string): Promise<void> => {
+    await api.delete(`/guesthouse/guest-services/${guestServiceId}`);
   },
 };
 

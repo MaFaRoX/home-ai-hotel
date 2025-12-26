@@ -1,12 +1,12 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  Language, 
-  translations, 
-  DEFAULT_LANGUAGE, 
+import {
+  Language,
+  translations,
+  DEFAULT_LANGUAGE,
   isValidLanguage,
-  TranslationKey 
+  TranslationKey
 } from '../locales';
 
 interface LanguageContextType {
@@ -33,7 +33,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (key: TranslationKey): string => {
-    return translations[language][key] || key;
+    return (translations[language] as any)[key] || (translations[DEFAULT_LANGUAGE] as any)[key] || key;
   };
 
   return (

@@ -94,6 +94,9 @@ export function GuestHouseLiveGrid() {
 
   const getRoomStatusColor = (room: Room) => {
     if (room.guest) {
+      if (room.guest.rentalType === 'overnight') {
+        return 'bg-purple-500 border-purple-700 hover:bg-purple-600';
+      }
       return room.guest.isHourly
         ? 'bg-blue-500 border-blue-700 hover:bg-blue-600'
         : 'bg-green-500 border-green-700 hover:bg-green-600';
@@ -106,6 +109,12 @@ export function GuestHouseLiveGrid() {
 
   const getRoomStatusText = (room: Room) => {
     if (room.guest) {
+      if (room.guest.rentalType === 'overnight') {
+        return {
+          text: t('room.overnight'),
+          color: 'text-purple-600'
+        };
+      }
       return {
         text: room.guest.isHourly ? t('room.hourly') : t('room.daily'),
         color: room.guest.isHourly ? 'text-blue-600' : 'text-green-600'
@@ -289,7 +298,7 @@ export function GuestHouseLiveGrid() {
 
             {/* Legend */}
             <div className="mt-2 sm:mt-3 bg-white/95 backdrop-blur rounded-lg p-2 sm:p-3 border-0 shadow-lg">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="w-4 h-4 sm:w-6 sm:h-6 bg-blue-500 border-2 border-blue-700 rounded flex-shrink-0"></div>
                   <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.hourlyRent')}</span>
@@ -297,6 +306,10 @@ export function GuestHouseLiveGrid() {
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="w-4 h-4 sm:w-6 sm:h-6 bg-green-500 border-2 border-green-700 rounded flex-shrink-0"></div>
                   <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.dailyRent')}</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-4 h-4 sm:w-6 sm:h-6 bg-purple-500 border-2 border-purple-700 rounded flex-shrink-0"></div>
+                  <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.overnightRent')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="w-4 h-4 sm:w-6 sm:h-6 bg-yellow-400 border-2 border-yellow-600 rounded flex-shrink-0"></div>
@@ -555,7 +568,7 @@ export function GuestHouseLiveGrid() {
                                               <div className="text-center space-y-1 sm:space-y-2">
                                                 <div>
                                                   <p className="text-base sm:text-2xl font-bold text-white">{room.number}</p>
-                                                  <p className="text-xs sm:text-sm text-white/90 truncate">{room.type}</p>
+                                                  <p className="text-xs sm:text-sm text-white/90 truncate">{t(`roomType.${room.type.toLowerCase()}` as any)}</p>
                                                 </div>
                                                 <Badge variant="outline" className={`${statusInfo.color} bg-white font-bold text-xs sm:text-base px-2 sm:px-3 py-0.5 sm:py-1`}>
                                                   {statusInfo.text}
@@ -577,6 +590,9 @@ export function GuestHouseLiveGrid() {
                                                     </p>
                                                     <p className="text-[10px] sm:text-xs text-gray-800 truncate">
                                                       {t('room.dailyRate')}: {formatCurrency(room.price)}₫
+                                                    </p>
+                                                    <p className="text-[10px] sm:text-xs text-gray-800 truncate">
+                                                      {t('room.overnight')}: {formatCurrency(room.overnightPrice || 0)}₫
                                                     </p>
                                                   </div>
                                                 )}
@@ -726,7 +742,7 @@ export function GuestHouseLiveGrid() {
                                   <div className="text-center space-y-1 sm:space-y-2">
                                     <div>
                                       <p className="text-base sm:text-2xl font-bold text-white">{room.number}</p>
-                                      <p className="text-xs sm:text-sm text-white/90 truncate">{room.type}</p>
+                                      <p className="text-xs sm:text-sm text-white/90 truncate">{t(`roomType.${room.type.toLowerCase()}` as any)}</p>
                                     </div>
                                     <Badge variant="outline" className={`${statusInfo.color} bg-white font-bold text-xs sm:text-base px-2 sm:px-3 py-0.5 sm:py-1`}>
                                       {statusInfo.text}
@@ -744,10 +760,13 @@ export function GuestHouseLiveGrid() {
                                     {!room.guest && (
                                       <div className="text-[10px] sm:text-sm space-y-0.5 sm:space-y-1">
                                         <p className="text-[10px] sm:text-xs text-gray-800 truncate">
-                                          Giờ: {formatCurrency(room.hourlyRate || 0)}₫
+                                          {t('room.hourlyRate')}: {formatCurrency(room.hourlyRate || 0)}₫
                                         </p>
                                         <p className="text-[10px] sm:text-xs text-gray-800 truncate">
-                                          Ngày: {formatCurrency(room.price)}₫
+                                          {t('room.dailyRate')}: {formatCurrency(room.price)}₫
+                                        </p>
+                                        <p className="text-[10px] sm:text-xs text-gray-800 truncate">
+                                          {t('room.overnight')}: {formatCurrency(room.overnightPrice || 0)}₫
                                         </p>
                                       </div>
                                     )}

@@ -33,6 +33,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
   const [roomType, setRoomType] = useState<RoomType>('Single');
   const [price, setPrice] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
+  const [overnightPrice, setOvernightPrice] = useState('');
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const isGuesthouse = businessModel === 'guesthouse';
 
@@ -79,19 +80,21 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       type: roomType,
       price: parseFloat(price),
       hourlyRate: isGuesthouse ? parseFloat(hourlyRate) : undefined,
+      overnightPrice: isGuesthouse && overnightPrice ? parseFloat(overnightPrice) : undefined,
       status: 'vacant-clean' as const,
     };
 
     try {
       await addRoom(newRoom);
       toast.success(`${t('add.roomAdded')} ${roomNumber} (${t('floor.floor')} ${selectedFloor})`);
-      
+
       // Reset form
       setRoomNumber('');
       setSelectedFloor('1');
       setRoomType('Single');
       setPrice('');
       setHourlyRate('');
+      setOvernightPrice('');
       if (!defaultBuildingId && !buildingId) {
         setSelectedBuildingId('');
       }
@@ -107,6 +110,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     setRoomType('Single');
     setPrice('');
     setHourlyRate('');
+    setOvernightPrice('');
     if (!defaultBuildingId && !buildingId) {
       setSelectedBuildingId('');
     }
@@ -280,11 +284,11 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
                 <SelectValue placeholder={t('add.selectRoomType')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Single">Single</SelectItem>
-                <SelectItem value="Double">Double</SelectItem>
-                <SelectItem value="Deluxe">Deluxe</SelectItem>
-                <SelectItem value="Suite">Suite</SelectItem>
-                <SelectItem value="Family">Family</SelectItem>
+                <SelectItem value="Single">{t('roomType.single')}</SelectItem>
+                <SelectItem value="Double">{t('roomType.double')}</SelectItem>
+                <SelectItem value="Deluxe">{t('roomType.deluxe')}</SelectItem>
+                <SelectItem value="Suite">{t('roomType.suite')}</SelectItem>
+                <SelectItem value="Family">{t('roomType.family')}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
@@ -292,7 +296,6 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
             </p>
           </div>
 
-          {/* Hourly Rate - Only for Guesthouse */}
           {isGuesthouse && (
             <div className="space-y-2">
               <Label htmlFor="hourly-rate" className="flex items-center gap-2">
@@ -311,6 +314,29 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               {hourlyRate && parseFloat(hourlyRate) > 0 && (
                 <p className="text-xs text-gray-600">
                   ≈ ₫{parseFloat(hourlyRate).toLocaleString()} / giờ
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Overnight Price - Only for Guesthouse */}
+          {isGuesthouse && (
+            <div className="space-y-2">
+              <Label htmlFor="overnight-price" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {t('add.overnightPrice')}
+              </Label>
+              <MoneyInput
+                id="overnight-price"
+                value={overnightPrice}
+                onChange={setOvernightPrice}
+                placeholder="250000"
+                className="text-lg"
+                suffix={`/${t('room.overnight').toLowerCase()}`}
+              />
+              {overnightPrice && parseFloat(overnightPrice) > 0 && (
+                <p className="text-xs text-gray-600">
+                  ≈ ₫{parseFloat(overnightPrice).toLocaleString()} / đêm
                 </p>
               )}
             </div>
@@ -341,7 +367,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-800">
-              💡 <strong>{t('bank.note')}</strong> {isGuesthouse 
+              💡 <strong>{t('bank.note')}</strong> {isGuesthouse
                 ? t('add.priceHintGuesthouse')
                 : t('add.priceHintBoarding')}
             </p>
@@ -367,8 +393,8 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
           </div>
         </form>
       </DialogContent>
-      <PremiumDialog 
-        open={showPremiumDialog} 
+      <PremiumDialog
+        open={showPremiumDialog}
         onOpenChange={setShowPremiumDialog}
         onUpgradeSuccess={() => setShowPremiumDialog(false)}
       />

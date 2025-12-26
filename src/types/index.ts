@@ -10,6 +10,36 @@ export type PaymentMethod = 'cash' | 'bank-transfer' | 'card' | 'momo' | 'vnpay'
 
 export type DocumentType = 'receipt' | 'invoice';
 
+// Hotel Service Catalog (Additional Services)
+export interface HotelService {
+  id: string;
+  hotelId: string;
+  name: string;
+  description?: string;
+  price: number;
+  unit?: string; // e.g., "can", "bottle", "kg"
+  category?: string; // e.g., "food", "drink", "laundry"
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Guest Service (Service usage tracking for occupied rooms)
+export interface GuestService {
+  id: string;
+  guestId: string;
+  serviceId: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  serviceName?: string;
+  serviceUnit?: string;
+}
+
+// Legacy types (kept for backward compatibility)
 export interface Service {
   id: string;
   name: string;
@@ -34,7 +64,8 @@ export interface Payment {
   checkInDate: string;
   checkOutDate: string;
   roomCharge: number;
-  isHourly: boolean;
+  isHourly?: boolean; // deprecated, use rentalType
+  rentalType: 'daily' | 'hourly' | 'overnight';
   services: Service[];
   incidentalCharges: IncidentalCharge[];
   subtotal: number;
@@ -74,6 +105,13 @@ export interface UtilityReading {
   }>;
 }
 
+export interface GuestAdditionalInfo {
+  idNumber?: string;        // CCCD/CMND number
+  address?: string;          // Address
+  nationality?: string;      // Nationality
+  passportNumber?: string;   // Passport number
+}
+
 export interface MonthlyRental {
   month: string; // Format: YYYY-MM
   rentAmount: number;
@@ -91,9 +129,12 @@ export interface Room {
   buildingId: string;
   type: RoomType;
   price: number;
-  hourlyRate?: number; // Giá theo giờ (cho nhà nghỉ)
+  hourlyRate?: number; // Giá theo giờ (additional hours after base)
+  hourlyBasePrice?: number; // Giá 2 giờ đầu (base price for first 2 hours)
+  overnightPrice?: number; // Giá qua đêm
   status: RoomStatus;
   guest?: {
+    id: string;
     name: string;
     phone?: string;
     email?: string;
@@ -103,7 +144,9 @@ export interface Room {
     services?: Service[];
     incidentalCharges?: IncidentalCharge[];
     checkedInBy?: string; // Email or name of receptionist who checked in
-    isHourly?: boolean; // Thuê theo giờ hay theo ngày
+    isHourly?: boolean; // deprecated, use rentalType
+    rentalType?: 'daily' | 'hourly' | 'overnight'; // Rental type
+    additionalInfo?: GuestAdditionalInfo; // Additional guest information
   };
   booking?: {
     guestName: string;
