@@ -33,6 +33,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
   const [roomType, setRoomType] = useState<RoomType>('Single');
   const [price, setPrice] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
+  const [hourlyBasePrice, setHourlyBasePrice] = useState('');
   const [overnightPrice, setOvernightPrice] = useState('');
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const isGuesthouse = businessModel === 'guesthouse';
@@ -80,6 +81,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       type: roomType,
       price: parseFloat(price),
       hourlyRate: isGuesthouse ? parseFloat(hourlyRate) : undefined,
+      hourlyBasePrice: isGuesthouse && hourlyBasePrice ? parseFloat(hourlyBasePrice) : undefined,
       overnightPrice: isGuesthouse && overnightPrice ? parseFloat(overnightPrice) : undefined,
       status: 'vacant-clean' as const,
     };
@@ -94,6 +96,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       setRoomType('Single');
       setPrice('');
       setHourlyRate('');
+      setHourlyBasePrice('');
       setOvernightPrice('');
       if (!defaultBuildingId && !buildingId) {
         setSelectedBuildingId('');
@@ -110,6 +113,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     setRoomType('Single');
     setPrice('');
     setHourlyRate('');
+    setHourlyBasePrice('');
     setOvernightPrice('');
     if (!defaultBuildingId && !buildingId) {
       setSelectedBuildingId('');
@@ -319,6 +323,29 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
             </div>
           )}
 
+          {/* Hourly Base Price - Only for Guesthouse */}
+          {isGuesthouse && (
+            <div className="space-y-2">
+              <Label htmlFor="hourly-base-price" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {t('add.hourlyBasePrice')}
+              </Label>
+              <MoneyInput
+                id="hourly-base-price"
+                value={hourlyBasePrice}
+                onChange={setHourlyBasePrice}
+                placeholder="200000"
+                className="text-lg"
+                suffix={`/2 ${t('room.hours').toLowerCase()}`}
+              />
+              {hourlyBasePrice && parseFloat(hourlyBasePrice) > 0 && (
+                <p className="text-xs text-gray-600">
+                  ≈ ₫{parseFloat(hourlyBasePrice).toLocaleString()} / 2 giờ đầu
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Overnight Price - Only for Guesthouse */}
           {isGuesthouse && (
             <div className="space-y-2">
@@ -364,14 +391,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
             )}
           </div>
 
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs text-blue-800">
-              💡 <strong>{t('bank.note')}</strong> {isGuesthouse
-                ? t('add.priceHintGuesthouse')
-                : t('add.priceHintBoarding')}
-            </p>
-          </div>
+
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">

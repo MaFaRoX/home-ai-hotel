@@ -32,7 +32,7 @@ interface ServiceManagementProps {
 }
 
 export function ServiceManagement({ open, onClose }: ServiceManagementProps) {
-    const { hotel, hotelServices, loadHotelServices } = useApp();
+    const { hotel, hotelServices, loadHotelServices, isGuestMode } = useApp();
     const { t } = useLanguage();
     const [loading, setLoading] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -83,30 +83,75 @@ export function ServiceManagement({ open, onClose }: ServiceManagementProps) {
         }
 
         try {
-            if (editingId) {
-                // Update existing service
-                await serviceApi.update(editingId, {
-                    name: name.trim(),
-                    description: description.trim() || undefined,
-                    price: priceNum,
-                    unit: unit.trim() || undefined,
-                    category: category.trim() || undefined,
-                });
-                toast.success(`✅ ${t('service.updatedSuccess')} ${name}`);
+            if (isGuestMode) {
+                // Guest mode: handle locally with localStorage
+                const savedServices = localStorage.getItem('hotel-app-services');
+                let services: HotelService[] = savedServices ? JSON.parse(savedServices) : [];
+
+                if (editingId) {
+                    // Update existing service
+                    services = services.map(s =>
+                        s.id === editingId
+                            ? {
+                                ...s,
+                                name: name.trim(),
+                                description: description.trim() || undefined,
+                                price: priceNum,
+                                unit: unit.trim() || undefined,
+                                category: category.trim() || undefined,
+                                updatedAt: new Date().toISOString(),
+                            }
+                            : s
+                    );
+                    toast.success(`✅ ${t('service.updatedSuccess')} ${name}`);
+                } else {
+                    // Create new service
+                    const newService: HotelService = {
+                        id: `service-${Date.now()}`,
+                        hotelId: hotel.id,
+                        name: name.trim(),
+                        description: description.trim() || undefined,
+                        price: priceNum,
+                        unit: unit.trim() || undefined,
+                        category: category.trim() || undefined,
+                        isActive: true,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    };
+                    services.push(newService);
+                    toast.success(`✅ ${t('service.addedSuccess')} ${name}`);
+                }
+
+                localStorage.setItem('hotel-app-services', JSON.stringify(services));
+                await loadHotelServices(); // Reload from localStorage
+                resetForm();
             } else {
-                // Create new service
-                await serviceApi.create({
-                    hotelId: hotel.id,
-                    name: name.trim(),
-                    description: description.trim() || undefined,
-                    price: priceNum,
-                    unit: unit.trim() || undefined,
-                    category: category.trim() || undefined,
-                });
-                toast.success(`✅ ${t('service.addedSuccess')} ${name}`);
+                // API mode
+                if (editingId) {
+                    // Update existing service
+                    await serviceApi.update(editingId, {
+                        name: name.trim(),
+                        description: description.trim() || undefined,
+                        price: priceNum,
+                        unit: unit.trim() || undefined,
+                        category: category.trim() || undefined,
+                    });
+                    toast.success(`✅ ${t('service.updatedSuccess')} ${name}`);
+                } else {
+                    // Create new service
+                    await serviceApi.create({
+                        hotelId: hotel.id,
+                        name: name.trim(),
+                        description: description.trim() || undefined,
+                        price: priceNum,
+                        unit: unit.trim() || undefined,
+                        category: category.trim() || undefined,
+                    });
+                    toast.success(`✅ ${t('service.addedSuccess')} ${name}`);
+                }
+                await loadHotelServices(); // Reload from server
+                resetForm();
             }
-            await loadHotelServices(); // Reload from server
-            resetForm();
         } catch (error: any) {
             toast.error(error.message || t('service.saveError'));
         }
@@ -114,12 +159,26 @@ export function ServiceManagement({ open, onClose }: ServiceManagementProps) {
 
     const handleDelete = async (serviceId: string) => {
         try {
-            await serviceApi.update(serviceId, { isActive: false });
-            await loadHotelServices(); // Reload from server
-            toast.success(t('room.serviceRemoved'));
-            setDeleteConfirmId(null);
+            if (isGuestMode) {
+                // Guest mode: handle locally with localStorage
+                const savedServices = localStorage.getItem('hotel-app-services');
+                let services: HotelService[] = savedServices ? JSON.parse(savedServices) : [];
+                services = services.filter(s => s.id !== serviceId);
+                localStorage.setItem('hotel-app-services', JSON.stringify(services));
+                await loadHotelServices(); // Reload from localStorage
+                toast.success(t('service.removed'));
+                setDeleteConfirmId(null);
+            } else {
+                // API mode
+                await serviceApi.delete(serviceId);
+                await loadHotelServices(); // Reload from server
+                toast.success(t('service.removed'));
+                setDeleteConfirmId(null);
+            }
         } catch (error: any) {
-            toast.error(error.message || t('room.serviceRemoveError'));
+            // Show specific error message if service is in use
+            const errorMessage = error.message || t('service.removeError');
+            toast.error(errorMessage);
         }
     };
 

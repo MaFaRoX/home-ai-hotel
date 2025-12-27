@@ -469,7 +469,6 @@ export function AppMenu({ open, onClose }: AppMenuProps) {
       <HelpDialog
         open={showHelpDialog}
         onClose={() => setShowHelpDialog(false)}
-        businessModel="guesthouse"
       />
 
       {/* PWA Installation Instructions Dialog */}

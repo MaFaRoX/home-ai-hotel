@@ -624,7 +624,17 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   }, [hotel, isGuestMode, handleApiError]);
 
   const loadHotelServices = useCallback(async () => {
-    if (!hotel || isGuestMode) return;
+    if (!hotel) return;
+
+    if (isGuestMode) {
+      // Load from localStorage for guest mode
+      const savedServices = localStorage.getItem('hotel-app-services');
+      if (savedServices) {
+        setHotelServices(JSON.parse(savedServices));
+      }
+      return;
+    }
+
     try {
       const services = await serviceApi.getAll(hotel.id);
       setHotelServices(services);
@@ -635,7 +645,17 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
   }, [hotel, isGuestMode, handleApiError]);
 
   const loadAllGuestServices = useCallback(async () => {
-    if (!hotel || isGuestMode) return;
+    if (!hotel) return;
+
+    if (isGuestMode) {
+      // Load from localStorage for guest mode
+      const savedGuestServices = localStorage.getItem('hotel-app-guest-services');
+      if (savedGuestServices) {
+        setGuestServices(JSON.parse(savedGuestServices));
+      }
+      return;
+    }
+
     try {
       const allGuestServices = await serviceApi.getAllGuestServices(hotel.id);
       setGuestServices(allGuestServices);
@@ -1306,6 +1326,8 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         roomType: room.type,
         price: room.price,
         hourlyRate: room.hourlyRate,
+        hourlyBasePrice: room.hourlyBasePrice,
+        overnightPrice: room.overnightPrice,
         status: room.status,
       });
 

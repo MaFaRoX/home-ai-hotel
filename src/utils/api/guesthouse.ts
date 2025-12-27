@@ -604,6 +604,10 @@ export const serviceApi = {
     return convertHotelService(response.service);
   },
 
+  delete: async (serviceId: string): Promise<void> => {
+    await api.delete(`/guesthouse/services/${serviceId}`);
+  },
+
   // Guest Services (Usage tracking)
   getAllGuestServices: async (hotelId: string): Promise<GuestService[]> => {
     const response = await api.get<{ services: BackendGuestService[] }>(`/guesthouse/hotels/${hotelId}/guest-services`);

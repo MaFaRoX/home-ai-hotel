@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react';
+// 'use client' is already at top
+import { useState, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Room, PaymentMethod } from '../types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -20,6 +21,7 @@ import {
   Receipt
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useReactToPrint } from 'react-to-print';
 import { useLanguage } from '../contexts/LanguageContext';
 import { generateVietQRUrl } from '../utils/vietnameseBanks';
 import { useSubscription } from '../hooks/useSubscription';
@@ -112,9 +114,12 @@ export function GuestHousePaymentDialog({
     onClose();
   };
 
-  const handlePrintReceipt = () => {
-    window.print();
-  };
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintReceipt = useReactToPrint({
+    contentRef,
+    documentTitle: `Receipt-${room.number}`,
+  });
 
   const getPaymentMethodIcon = (method: PaymentMethod) => {
     switch (method) {
@@ -165,36 +170,8 @@ export function GuestHousePaymentDialog({
             padding: 0 !important;
           }
           
-          body * {
-            visibility: hidden;
-          }
-          
-          [data-slot="dialog-overlay"],
-          [data-slot="dialog-close"],
-          .no-print,
-          .no-print * {
+          .no-print {
             display: none !important;
-            visibility: hidden !important;
-          }
-          
-          .receipt-content,
-          .receipt-content * {
-            visibility: visible;
-          }
-          
-          [data-slot="dialog-content"] {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            transform: none !important;
-            /* Use full printable area of the 80mm paper */
-            max-width: 100% !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 6mm 4mm !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: white !important;
           }
           
           .receipt-content {
@@ -474,7 +451,7 @@ export function GuestHousePaymentDialog({
                 <DialogTitle className="text-xl sm:text-2xl font-bold">{t('payment.receiptTitle')}</DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-4 receipt-content">
+              <div className="space-y-4 receipt-content" ref={contentRef}>
                 {/* Hotel Info */}
                 <div className="text-center border-b pb-4">
                   <h2 className="text-2xl font-bold text-gray-800">
@@ -576,7 +553,7 @@ export function GuestHousePaymentDialog({
                         <p className="font-medium text-gray-700">
                           {t('common.room')}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-700">
                           {room.guest?.rentalType === 'hourly' || (room.guest?.isHourly && !room.guest?.rentalType)
                             ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
                             : room.guest?.rentalType === 'overnight'
@@ -600,11 +577,11 @@ export function GuestHousePaymentDialog({
                           <div key={service.id} className="flex justify-between items-center text-xs ml-2">
                             <div>
                               <span className="text-gray-600">{service.name}</span>
-                              <span className="text-gray-400 ml-1">
+                              <span className="text-gray-600 ml-1">
                                 × {service.quantity}
                               </span>
                             </div>
-                            <span className="text-gray-700">
+                            <span className="text-gray-600">
                               {formatCurrency((service.price || 0) * (service.quantity || 1))}₫
                             </span>
                           </div>
@@ -702,34 +679,35 @@ export function GuestHousePaymentDialog({
                 </Card>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2 sm:gap-3 pt-2 no-print">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep('select')}
-                    className="flex-1 text-sm sm:text-base py-4 sm:py-6"
-                  >
-                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                    <span className="hidden sm:inline">{t('payment.back')}</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handlePrintReceipt}
-                    className="text-sm sm:text-base py-4 sm:py-6 px-3 sm:px-4"
-                  >
-                    <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Button>
-                  <Button
-                    onClick={completePayment}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
-                  >
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                    {t('payment.confirmPayment')}
-                  </Button>
-                </div>
-
-                <p className="text-center text-xs text-gray-600 pt-2">
+                <p className="text-center text-xs text-gray-600 pt-4">
                   {t('payment.thankYou')}
                 </p>
+              </div>
+
+              {/* Action Buttons - Outside ref={contentRef} so they don't print */}
+              <div className="flex gap-2 sm:gap-3 pt-4 mt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep('select')}
+                  className="flex-1 text-sm sm:text-base py-4 sm:py-6"
+                >
+                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('payment.back')}</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handlePrintReceipt}
+                  className="text-sm sm:text-base py-4 sm:py-6 px-3 sm:px-4"
+                >
+                  <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+                <Button
+                  onClick={completePayment}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-sm sm:text-base py-4 sm:py-6"
+                >
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                  {t('payment.confirmPayment')}
+                </Button>
               </div>
             </>
           )}

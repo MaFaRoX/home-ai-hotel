@@ -56,7 +56,7 @@ interface GuestHouseRoomDialogProps {
 }
 
 export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDialogProps) {
-  const { updateRoom, user, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms, hotelServices, loadHotelServices, guestServices, loadAllGuestServices } = useApp();
+  const { updateRoom, user, hotel, checkIn, checkOut, markRoomCleaned, addPayment, rooms, hotelServices, loadHotelServices, guestServices, loadAllGuestServices, isGuestMode } = useApp();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'info' | 'checkin' | 'services'>('info');
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -609,16 +609,50 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
     }
 
     try {
-      await serviceApi.addToGuest({
-        guestId: room.guest.id,
-        serviceId: selectedServiceId,
-        quantity: qty,
-      });
-      // Refresh guest services from context
-      await loadAllGuestServices();
-      setServiceQuantity('1');
-      setSelectedServiceId('');
-      toast.success(`✅ ${t('room.serviceAdded')}`);
+      if (isGuestMode) {
+        // Guest mode: handle locally with localStorage
+        const savedGuestServices = localStorage.getItem('hotel-app-guest-services');
+        let guestServicesData: GuestService[] = savedGuestServices ? JSON.parse(savedGuestServices) : [];
+
+        // Find the hotel service to get price
+        const hotelService = hotelServices.find(s => s.id === selectedServiceId);
+        if (!hotelService) {
+          toast.error('Service not found');
+          return;
+        }
+
+        const newGuestService: GuestService = {
+          id: `gs-${Date.now()}`,
+          guestId: room.guest.id,
+          serviceId: selectedServiceId,
+          quantity: qty,
+          unitPrice: hotelService.price,
+          totalPrice: hotelService.price * qty,
+          serviceName: hotelService.name,
+          serviceUnit: hotelService.unit,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        guestServicesData.push(newGuestService);
+        localStorage.setItem('hotel-app-guest-services', JSON.stringify(guestServicesData));
+        await loadAllGuestServices();
+        setServiceQuantity('1');
+        setSelectedServiceId('');
+        toast.success(`✅ ${t('room.serviceAdded')}`);
+      } else {
+        // API mode
+        await serviceApi.addToGuest({
+          guestId: room.guest.id,
+          serviceId: selectedServiceId,
+          quantity: qty,
+        });
+        // Refresh guest services from context
+        await loadAllGuestServices();
+        setServiceQuantity('1');
+        setSelectedServiceId('');
+        toast.success(`✅ ${t('room.serviceAdded')}`);
+      }
     } catch (error: any) {
       toast.error(error.message || t('room.serviceAddError'));
     }
@@ -626,10 +660,21 @@ export function GuestHouseRoomDialog({ room, open, onClose }: GuestHouseRoomDial
 
   const handleRemoveService = async (guestServiceId: string) => {
     try {
-      await serviceApi.removeFromGuest(guestServiceId);
-      // Refresh guest services from context
-      await loadAllGuestServices();
-      toast.success(t('room.serviceRemoved'));
+      if (isGuestMode) {
+        // Guest mode: handle locally with localStorage
+        const savedGuestServices = localStorage.getItem('hotel-app-guest-services');
+        let guestServicesData: GuestService[] = savedGuestServices ? JSON.parse(savedGuestServices) : [];
+        guestServicesData = guestServicesData.filter(gs => gs.id !== guestServiceId);
+        localStorage.setItem('hotel-app-guest-services', JSON.stringify(guestServicesData));
+        await loadAllGuestServices();
+        toast.success(t('room.serviceRemoved'));
+      } else {
+        // API mode
+        await serviceApi.removeFromGuest(guestServiceId);
+        // Refresh guest services from context
+        await loadAllGuestServices();
+        toast.success(t('room.serviceRemoved'));
+      }
     } catch (error: any) {
       toast.error(error.message || t('room.serviceRemoveError'));
     }
