@@ -35,6 +35,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
   const [hourlyRate, setHourlyRate] = useState('');
   const [hourlyBasePrice, setHourlyBasePrice] = useState('');
   const [overnightPrice, setOvernightPrice] = useState('');
+  const [monthlyPrice, setMonthlyPrice] = useState('');
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const isGuesthouse = businessModel === 'guesthouse';
 
@@ -83,6 +84,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       hourlyRate: isGuesthouse ? parseFloat(hourlyRate) : undefined,
       hourlyBasePrice: isGuesthouse && hourlyBasePrice ? parseFloat(hourlyBasePrice) : undefined,
       overnightPrice: isGuesthouse && overnightPrice ? parseFloat(overnightPrice) : undefined,
+      monthlyPrice: isGuesthouse && monthlyPrice ? parseFloat(monthlyPrice) : undefined,
       status: 'vacant-clean' as const,
     };
 
@@ -98,6 +100,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
       setHourlyRate('');
       setHourlyBasePrice('');
       setOvernightPrice('');
+      setMonthlyPrice('');
       if (!defaultBuildingId && !buildingId) {
         setSelectedBuildingId('');
       }
@@ -115,6 +118,7 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
     setHourlyRate('');
     setHourlyBasePrice('');
     setOvernightPrice('');
+    setMonthlyPrice('');
     if (!defaultBuildingId && !buildingId) {
       setSelectedBuildingId('');
     }
@@ -364,6 +368,29 @@ export function AddRoomDialog({ open, onClose, defaultBuildingId, buildingId }: 
               {overnightPrice && parseFloat(overnightPrice) > 0 && (
                 <p className="text-xs text-gray-600">
                   ≈ ₫{parseFloat(overnightPrice).toLocaleString()} / đêm
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Monthly Price - Only for Guesthouse */}
+          {isGuesthouse && (
+            <div className="space-y-2">
+              <Label htmlFor="monthly-price" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {t('add.monthlyPrice')}
+              </Label>
+              <MoneyInput
+                id="monthly-price"
+                value={monthlyPrice}
+                onChange={setMonthlyPrice}
+                placeholder="5000000"
+                className="text-lg"
+                suffix={`/${t('room.monthly').toLowerCase()}`}
+              />
+              {monthlyPrice && parseFloat(monthlyPrice) > 0 && (
+                <p className="text-xs text-gray-600">
+                  ≈ ₫{parseFloat(monthlyPrice).toLocaleString()} / tháng
                 </p>
               )}
             </div>

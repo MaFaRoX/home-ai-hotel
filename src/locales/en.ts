@@ -67,6 +67,7 @@ export const en = {
   'room.vacant': 'Vacant',
   'room.hourlyRate': 'Hour',
   'room.dailyRate': 'Day',
+  'room.monthlyRate': 'Month',
 
   // Building
   'building.rooms': 'rooms',
@@ -198,6 +199,7 @@ export const en = {
   'add.hourlyPrice': 'Hourly Price',
   'add.hourlyBasePrice': 'Base Price (2 hours)',
   'add.overnightPrice': 'Overnight Price',
+  'add.monthlyPrice': 'Monthly Price',
   'add.addRoom': 'Add Room',
   'add.roomAdded': 'Room added',
   'add.errorRoomNumber': 'Please enter room number',
@@ -300,6 +302,8 @@ export const en = {
   'room.hourly': 'Hourly',
   'room.daily': 'Daily',
   'room.overnight': 'Overnight',
+  'room.monthly': 'Monthly',
+  'room.monthsRental': 'Months',
   'room.totalAmount': 'Total Room Amount',
   'room.checkedInBy': 'Checked in by',
   'room.checkout': 'Check-out',
@@ -319,6 +323,7 @@ export const en = {
   'room.dailyPrice': 'Daily Price',
   'room.dailyPricePerDay': 'Daily Price (₫/day)',
   'room.overnightPrice': 'Overnight Price',
+  'room.priceMonthly': 'Monthly Price',
   'room.markClean': 'Mark as Clean',
   'room.checkinNow': 'Check-in Now',
   'room.rentalTypeLabel': 'Rental Type',

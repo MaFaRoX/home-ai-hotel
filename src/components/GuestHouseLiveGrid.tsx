@@ -94,6 +94,9 @@ export function GuestHouseLiveGrid() {
 
   const getRoomStatusColor = (room: Room) => {
     if (room.guest) {
+      if (room.guest.rentalType === 'monthly') {
+        return 'bg-orange-500 border-orange-700 hover:bg-orange-600';
+      }
       if (room.guest.rentalType === 'overnight') {
         return 'bg-purple-500 border-purple-700 hover:bg-purple-600';
       }
@@ -109,6 +112,12 @@ export function GuestHouseLiveGrid() {
 
   const getRoomStatusText = (room: Room) => {
     if (room.guest) {
+      if (room.guest.rentalType === 'monthly') {
+        return {
+          text: t('room.monthly'),
+          color: 'text-orange-600'
+        };
+      }
       if (room.guest.rentalType === 'overnight') {
         return {
           text: t('room.overnight'),
@@ -298,7 +307,7 @@ export function GuestHouseLiveGrid() {
 
             {/* Legend */}
             <div className="mt-2 sm:mt-3 bg-white/95 backdrop-blur rounded-lg p-2 sm:p-3 border-0 shadow-lg">
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="w-4 h-4 sm:w-6 sm:h-6 bg-blue-500 border-2 border-blue-700 rounded flex-shrink-0"></div>
                   <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.hourlyRent')}</span>
@@ -310,6 +319,10 @@ export function GuestHouseLiveGrid() {
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="w-4 h-4 sm:w-6 sm:h-6 bg-purple-500 border-2 border-purple-700 rounded flex-shrink-0"></div>
                   <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('legend.overnightRent')}</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="w-4 h-4 sm:w-6 sm:h-6 bg-orange-500 border-2 border-orange-700 rounded flex-shrink-0"></div>
+                  <span className="text-[10px] sm:text-sm text-gray-700 truncate">{t('room.monthly')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <div className="w-4 h-4 sm:w-6 sm:h-6 bg-yellow-400 border-2 border-yellow-600 rounded flex-shrink-0"></div>
@@ -592,7 +605,9 @@ export function GuestHouseLiveGrid() {
                                                       {t('room.dailyRate')}: {formatCurrency(room.price)}₫
                                                     </p>
                                                     <p className="text-[10px] sm:text-xs text-gray-800 truncate">
-                                                      {t('room.overnight')}: {formatCurrency(room.overnightPrice || 0)}₫
+                                                      {room.monthlyPrice && room.monthlyPrice > 0
+                                                        ? `${t('room.monthlyRate')}: ${formatCurrency(room.monthlyPrice)}₫`
+                                                        : `${t('room.overnight')}: ${formatCurrency(room.overnightPrice || 0)}₫`}
                                                     </p>
                                                   </div>
                                                 )}
@@ -766,7 +781,9 @@ export function GuestHouseLiveGrid() {
                                           {t('room.dailyRate')}: {formatCurrency(room.price)}₫
                                         </p>
                                         <p className="text-[10px] sm:text-xs text-gray-800 truncate">
-                                          {t('room.overnight')}: {formatCurrency(room.overnightPrice || 0)}₫
+                                          {room.monthlyPrice && room.monthlyPrice > 0
+                                            ? `${t('room.monthly')}: ${formatCurrency(room.monthlyPrice)}₫`
+                                            : `${t('room.overnight')}: ${formatCurrency(room.overnightPrice || 0)}₫`}
                                         </p>
                                       </div>
                                     )}

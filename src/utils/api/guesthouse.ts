@@ -45,6 +45,7 @@ export interface BackendRoom {
   hourlyRate: number | null;
   hourlyBasePrice: number | null;
   overnightPrice: number | null;
+  monthlyPrice: number | null;
   status: 'vacant-clean' | 'occupied' | 'vacant-dirty' | 'due-out' | 'out-of-order';
   createdAt: string;
   updatedAt: string;
@@ -57,7 +58,7 @@ export interface BackendRoom {
     checkOutDate: string;
     totalAmount: number;
     isHourly?: boolean; // deprecated in favor of rentalType
-    rentalType: 'daily' | 'hourly' | 'overnight';
+    rentalType: 'daily' | 'hourly' | 'overnight' | 'monthly';
     services: unknown[] | null;
     incidentalCharges: unknown[] | null;
     checkedInBy: string | null;
@@ -80,7 +81,7 @@ export interface BackendPayment {
   checkOutDate: string;
   roomCharge: number;
   isHourly?: boolean; // deprecated in favor of rentalType
-  rentalType: 'daily' | 'hourly' | 'overnight';
+  rentalType: 'daily' | 'hourly' | 'overnight' | 'monthly';
   services: unknown[] | null;
   incidentalCharges: unknown[] | null;
   subtotal: number;
@@ -150,6 +151,7 @@ function convertRoom(backend: BackendRoom): Room {
     hourlyRate: backend.hourlyRate || undefined,
     hourlyBasePrice: backend.hourlyBasePrice || undefined,
     overnightPrice: backend.overnightPrice || undefined,
+    monthlyPrice: backend.monthlyPrice || undefined,
     status: backend.status,
     guest: backend.guest
       ? {
@@ -299,6 +301,7 @@ export const roomApi = {
     hourlyRate?: number;
     hourlyBasePrice?: number;
     overnightPrice?: number;
+    monthlyPrice?: number;
     status?: 'vacant-clean' | 'occupied' | 'vacant-dirty' | 'due-out' | 'out-of-order';
   }): Promise<Room> => {
     const response = await api.post<{ room: BackendRoom }>('/guesthouse/rooms', data);
@@ -313,6 +316,7 @@ export const roomApi = {
     hourlyRate?: number | null;
     hourlyBasePrice?: number | null;
     overnightPrice?: number | null;
+    monthlyPrice?: number | null;
     status?: 'vacant-clean' | 'occupied' | 'vacant-dirty' | 'due-out' | 'out-of-order';
     buildingId?: string;
   }): Promise<Room> => {
@@ -340,7 +344,7 @@ export const roomApi = {
     checkOutDate: string;
     totalAmount: number;
     isHourly?: boolean; // deprecated, use rentalType
-    rentalType?: 'daily' | 'hourly' | 'overnight';
+    rentalType?: 'daily' | 'hourly' | 'overnight' | 'monthly';
     services?: unknown[];
     incidentalCharges?: unknown[];
     checkedInBy?: string;
@@ -444,7 +448,7 @@ export const paymentApi = {
     checkOutDate: string;
     roomCharge: number;
     isHourly?: boolean; // deprecated, use rentalType
-    rentalType: 'daily' | 'hourly' | 'overnight';
+    rentalType: 'daily' | 'hourly' | 'overnight' | 'monthly';
     services?: unknown[];
     incidentalCharges?: unknown[];
     subtotal: number;

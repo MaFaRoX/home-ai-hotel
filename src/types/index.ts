@@ -65,7 +65,7 @@ export interface Payment {
   checkOutDate: string;
   roomCharge: number;
   isHourly?: boolean; // deprecated, use rentalType
-  rentalType: 'daily' | 'hourly' | 'overnight';
+  rentalType: 'daily' | 'hourly' | 'overnight' | 'monthly';
   services: Service[];
   incidentalCharges: IncidentalCharge[];
   subtotal: number;
@@ -112,15 +112,6 @@ export interface GuestAdditionalInfo {
   passportNumber?: string;   // Passport number
 }
 
-export interface MonthlyRental {
-  month: string; // Format: YYYY-MM
-  rentAmount: number;
-  utilities?: UtilityReading;
-  paid: boolean;
-  paidDate?: string;
-  paidAmount?: number;
-  paymentMethod?: PaymentMethod;
-}
 
 export interface Room {
   id: string;
@@ -132,6 +123,7 @@ export interface Room {
   hourlyRate?: number; // Giá theo giờ (additional hours after base)
   hourlyBasePrice?: number; // Giá 2 giờ đầu (base price for first 2 hours)
   overnightPrice?: number; // Giá qua đêm
+  monthlyPrice?: number; // Giá thuê tháng (30-day fixed period)
   status: RoomStatus;
   guest?: {
     id: string;
@@ -145,7 +137,7 @@ export interface Room {
     incidentalCharges?: IncidentalCharge[];
     checkedInBy?: string; // Email or name of receptionist who checked in
     isHourly?: boolean; // deprecated, use rentalType
-    rentalType?: 'daily' | 'hourly' | 'overnight'; // Rental type
+    rentalType?: 'daily' | 'hourly' | 'overnight' | 'monthly'; // Rental type
     additionalInfo?: GuestAdditionalInfo; // Additional guest information
   };
   booking?: {
@@ -155,19 +147,6 @@ export interface Room {
     bookingDate: string;
     checkInDate: string;
     checkOutDate: string;
-  };
-  // Boarding house specific
-  tenant?: {
-    name: string;
-    phone: string;
-    idCard?: string; // CMND/CCCD
-    moveInDate: string;
-    deposit: number; // Tiền cọc
-    monthlyRent: number; // Tiền thuê/tháng
-    electricityPrice?: number; // Giá điện/kWh
-    waterPrice?: number; // Giá nước/m³
-    internetFee?: number; // Phí internet cố định
-    monthlyHistory: MonthlyRental[]; // Lịch sử thanh toán theo tháng
   };
 }
 

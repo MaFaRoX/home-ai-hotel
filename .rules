@@ -3,7 +3,7 @@
 ## Project Structure
 - `src/`: Next.js Web Frontend.
 - `backend/`: Express.js Backend.
-- `mobile/`: React Native migrated from `src/`.
+- `mobile/`(if not present, it means I moved it outside, chat will focus on web app): React Native migrated from `src/`.
 
 ## Tech Stack
 - **Frontend**: Next.js, Radix UI, Tailwind CSS, TypeScript.
@@ -12,3 +12,8 @@
 ## Rules & Preferences
 - If the chat open with web app, it will focus on the Web Frontend.
 - If the chat open with mobile app, it will focus on the Mobile App.
+- There are 2 separate repositories for 'backend/'(backend) and all others except 'mobile/'(frontend).
+- Do not create new md files in project, but artifacts still can be created if planning mode is active.
+- Do not run 'npm run dev'.
+- Check and fix errors of edited files after finish a job.
+- consolidated_migrations.sql is the file that contains all migrations for the database.

@@ -526,9 +526,10 @@ export function GuestHousePaymentDialog({
                     <div className="flex justify-between">
                       <span className="text-gray-600">{t('payment.rentalType')}:</span>
                       <span className="font-semibold">
-                        {room.guest?.rentalType === 'hourly' ? t('room.hourly') :
-                          room.guest?.rentalType === 'overnight' ? t('room.overnight') :
-                            room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
+                        {room.guest?.rentalType === 'monthly' ? t('room.monthly') :
+                          room.guest?.rentalType === 'hourly' ? t('room.hourly') :
+                            room.guest?.rentalType === 'overnight' ? t('room.overnight') :
+                              room.guest?.isHourly ? t('room.hourly') : t('room.daily')}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -554,11 +555,13 @@ export function GuestHousePaymentDialog({
                           {t('common.room')}
                         </p>
                         <p className="text-xs text-gray-700">
-                          {room.guest?.rentalType === 'hourly' || (room.guest?.isHourly && !room.guest?.rentalType)
-                            ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
-                            : room.guest?.rentalType === 'overnight'
-                              ? `${formatCurrency(room.overnightPrice || 0)}₫/${t('room.overnight').toLowerCase()}`
-                              : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
+                          {room.guest?.rentalType === 'monthly'
+                            ? `${formatCurrency(room.monthlyPrice || 0)}₫/${t('room.monthly').toLowerCase()}`
+                            : room.guest?.rentalType === 'hourly' || (room.guest?.isHourly && !room.guest?.rentalType)
+                              ? `${formatCurrency(room.hourlyRate || 0)}₫/${t('room.hours').slice(0, -1)}`
+                              : room.guest?.rentalType === 'overnight'
+                                ? `${formatCurrency(room.overnightPrice || 0)}₫/${t('room.overnight').toLowerCase()}`
+                                : `${formatCurrency(room.price)}₫/${t('room.daily').toLowerCase()}`
                           }
                         </p>
                       </div>

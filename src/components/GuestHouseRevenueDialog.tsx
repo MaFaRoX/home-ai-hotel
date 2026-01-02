@@ -34,7 +34,7 @@ interface RevenueData {
   roomNumber: string;
   roomDisplayName: string; // Room number with building name: "Room 101 (Building name)"
   guestName: string;
-  rentalType: 'daily' | 'hourly' | 'overnight';
+  rentalType: 'daily' | 'hourly' | 'overnight' | 'monthly';
   paymentMethod: string;
 }
 
@@ -146,11 +146,13 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const todayHourly = todayRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
   const todayDaily = todayRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
   const todayOvernight = todayRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
+  const todayMonthly = todayRevenue.filter(r => r.rentalType === 'monthly').reduce((sum, r) => sum + r.amount, 0);
 
   // This month's revenue
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
   const monthRevenue = useMemo(() => {
     return revenueHistory.filter(r => r.date.startsWith(currentMonth));
+
   }, [revenueHistory, currentMonth]);
 
   // Reset visible count when month changes
@@ -176,6 +178,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const monthHourly = monthRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
   const monthDaily = monthRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
   const monthOvernight = monthRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
+  const monthMonthly = monthRevenue.filter(r => r.rentalType === 'monthly').reduce((sum, r) => sum + r.amount, 0);
 
   // This year's revenue
   const currentYear = new Date().getFullYear().toString();
@@ -206,6 +209,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const yearHourly = yearRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
   const yearDaily = yearRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
   const yearOvernight = yearRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
+  const yearMonthly = yearRevenue.filter(r => r.rentalType === 'monthly').reduce((sum, r) => sum + r.amount, 0);
 
   // All revenue (all payments regardless of date)
   const allRevenue = useMemo(() => {
@@ -230,6 +234,7 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
   const allHourly = allRevenue.filter(r => r.rentalType === 'hourly').reduce((sum, r) => sum + r.amount, 0);
   const allDaily = allRevenue.filter(r => r.rentalType === 'daily').reduce((sum, r) => sum + r.amount, 0);
   const allOvernight = allRevenue.filter(r => r.rentalType === 'overnight').reduce((sum, r) => sum + r.amount, 0);
+  const allMonthly = allRevenue.filter(r => r.rentalType === 'monthly').reduce((sum, r) => sum + r.amount, 0);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('vi-VN', {
@@ -407,6 +412,18 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                   {formatCurrency(todayOvernight)}₫
                 </p>
               </Card>
+
+              <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('room.monthly')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {todayRevenue.filter(r => r.rentalType === 'monthly').length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-orange-600 -mt-2 leading-none">
+                  {formatCurrency(todayMonthly)}₫
+                </p>
+              </Card>
             </div>
 
             <Card className="p-4">
@@ -432,8 +449,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                           {formatCurrency(item.amount)}₫
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {item.rentalType === 'hourly' ? t('room.hourly') :
-                            item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
+                          {item.rentalType === 'monthly' ? t('room.monthly') :
+                            item.rentalType === 'hourly' ? t('room.hourly') :
+                              item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
                         </Badge>
                       </div>
                     </div>
@@ -507,6 +525,18 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                   {formatCurrency(monthOvernight)}₫
                 </p>
               </Card>
+
+              <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100">
+                <div className="flex items-center justify-between leading-none">
+                  <p className="text-sm text-gray-600 leading-none">{t('room.monthly')}</p>
+                  <p className="text-xs text-gray-500 leading-none">
+                    {monthRevenue.filter(r => r.rentalType === 'monthly').length} {t('revenue.transactions')}
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-orange-600 -mt-2 leading-none">
+                  {formatCurrency(monthMonthly)}₫
+                </p>
+              </Card>
             </div>
 
             <Card className="p-4">
@@ -535,8 +565,9 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                             {formatCurrency(item.amount)}₫
                           </p>
                           <Badge variant="outline" className="text-xs">
-                            {item.rentalType === 'hourly' ? t('room.hourly') :
-                              item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
+                            {item.rentalType === 'monthly' ? t('room.monthly') :
+                              item.rentalType === 'hourly' ? t('room.hourly') :
+                                item.rentalType === 'overnight' ? t('room.overnight') : t('room.daily')}
                           </Badge>
                         </div>
                       </div>
@@ -645,6 +676,18 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                     </div>
                     <p className="text-2xl font-bold text-indigo-600 -mt-2 leading-none">
                       {formatCurrency(yearOvernight)}₫
+                    </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('room.monthly')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {yearRevenue.filter(r => r.rentalType === 'monthly').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-orange-600 -mt-2 leading-none">
+                      {formatCurrency(yearMonthly)}₫
                     </p>
                   </Card>
                 </div>
@@ -786,6 +829,18 @@ export function GuestHouseRevenueDialog({ open, onClose }: GuestHouseRevenueDial
                     </div>
                     <p className="text-2xl font-bold text-indigo-600 -mt-2 leading-none">
                       {formatCurrency(allOvernight)}₫
+                    </p>
+                  </Card>
+
+                  <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100">
+                    <div className="flex items-center justify-between leading-none">
+                      <p className="text-sm text-gray-600 leading-none">{t('room.monthly')}</p>
+                      <p className="text-xs text-gray-500 leading-none">
+                        {allRevenue.filter(r => r.rentalType === 'monthly').length} {t('revenue.transactions')}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-orange-600 -mt-2 leading-none">
+                      {formatCurrency(allMonthly)}₫
                     </p>
                   </Card>
                 </div>

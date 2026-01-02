@@ -1328,6 +1328,7 @@ export function AppProvider({ children, defaultBusinessModel }: { children: Reac
         hourlyRate: room.hourlyRate,
         hourlyBasePrice: room.hourlyBasePrice,
         overnightPrice: room.overnightPrice,
+        monthlyPrice: room.monthlyPrice,
         status: room.status,
       });
 
